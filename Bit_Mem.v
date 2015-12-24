@@ -12,12 +12,12 @@ module Bit_Mem(clk,CS,RW,addr,din,dout);
   
   reg mem[DEPTH-1:0];
   
-  always@(posedge clk)
+  always@(negedge clk)
     casex({CS,RW})
-	  2'b1x : dout = 1'bz;
-	  2'b01 : dout = mem[addr];
-	  2'b00 : mem[addr] = din;
-	  default : dout = 1'bz;
+	  2'b1x : dout <= 1'bz;
+	  2'b01 : dout <= mem[addr];
+	  2'b00 : mem[addr] <= din;
+	  default : dout <= 1'bz;
 	endcase
   
 endmodule
