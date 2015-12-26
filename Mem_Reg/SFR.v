@@ -21,7 +21,7 @@ module SFR(clk,reset,en,oe,Bb,position,din,bin,dout,bout,cout);
 	assign bits = (cout[WIDTH-1:0]&(~position[WIDTH-1:0]))|({WIDTH{bin}}&position[WIDTH-1:0]);
 	
 	// modify
-	always @(posedge clk_n or posedge reset)
+	always @(posedge clk_n)
         casex({reset,en,Bb})
 		    3'b1xx : cout <= INITV;
 			3'b011 : cout <= din[WIDTH-1:0];
@@ -31,10 +31,10 @@ module SFR(clk,reset,en,oe,Bb,position,din,bin,dout,bout,cout);
 	// output
 	always @(posedge clk_n)
 	    casex({en,oe,Bb})
-		    3'b1xx : dout <= {WIDTH{1'bz}}; bout <= 1'bz;
-			3'b00x : dout <= {WIDTH{1'bz}}; bout <= 1'bz;
-			3'b011 : dout <= cout[WIDTH-1:0]; bout <= 1'bz;
-			3'b010 : dout <= {WIDTH{1'bz}}; bout <= |(position[WIDTH-1:0]&cout[WIDTH-1:0]);
-			default: dout <= {WIDTH{1'bz}}; bout <= 1'bz;
+		    3'b1xx : begin dout <= {WIDTH{1'bz}}; bout <= 1'bz;   end
+			3'b00x : begin dout <= {WIDTH{1'bz}}; bout <= 1'bz;   end
+			3'b011 : begin dout <= cout[WIDTH-1:0]; bout <= 1'bz; end
+			3'b010 : begin dout <= {WIDTH{1'bz}}; bout <= |(position[WIDTH-1:0]&cout[WIDTH-1:0]);  end
+			default: begin dout <= {WIDTH{1'bz}}; bout <= 1'bz;   end
 		endcase
 endmodule

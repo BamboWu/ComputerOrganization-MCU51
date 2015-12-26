@@ -53,7 +53,7 @@ module DATARAM(clk,CS,RW,Bb,addr,position,din,dout,bin,bout);
   wire Rnbit,Bit;
   assign Rnbit = |(position[7:0]&Rnbits[7:0]);
   assign Bit   = |(position[7:0]&Bits[7:0]);
-  always@(Bb,ByteCS,BitCS,RnCS,Rnbits,Rnbit,Bits,Bit)
+  always@(Bb,ByteCS,BitCS,RnCS,Rnbits,Rnbit,Byte,Bits,Bit)
     case({Bb,ByteCS,BitCS,RnCS})
 	  4'b1110 : begin dout <= Rnbits[7:0]; bout <= 1'bz;   end
 	  4'b1101 : begin dout <= Bits[7:0]; bout <= 1'bz;     end
