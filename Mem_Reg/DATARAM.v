@@ -53,13 +53,14 @@ module DATARAM(clk,CS,RW,Bb,addr,position,din,dout,bin,bout);
   wire Rnbit,Bit;
   assign Rnbit = |(position[7:0]&Rnbits[7:0]);
   assign Bit   = |(position[7:0]&Bits[7:0]);
-  always@(Bb,ByteCS,BitCS,RnCS,Rnbits,Rnbit,Byte,Bits,Bit)
-    case({Bb,ByteCS,BitCS,RnCS})
-	  4'b1110 : begin dout <= Rnbits[7:0]; bout <= 1'bz;   end
-	  4'b1101 : begin dout <= Bits[7:0]; bout <= 1'bz;     end
-	  4'b1011 : begin dout <= Byte[7:0]; bout <= 1'bz;     end
-	  4'b0110 : begin bout <= Rnbit; dout <= 8'bzzzzzzzz;  end
-	  4'b0101 : begin bout <= Bit; dout <= 8'bzzzzzzzz;    end
-	  default : begin bout <= 1'bz; dout <= 8'bzzzzzzzz;   end
+  always@(Bb,ByteCS,BitCS,RnCS,RW,Rnbits,Rnbit,Byte,Bits,Bit)
+    case({Bb,ByteCS,BitCS,RnCS,RW})
+	  5'bxxxx1 : begin dout <= 8'hzz; bout <= 1'bz;         end
+	  5'b11100 : begin dout <= Rnbits[7:0]; bout <= 1'bz;   end
+	  5'b11010 : begin dout <= Bits[7:0]; bout <= 1'bz;     end
+	  5'b10110 : begin dout <= Byte[7:0]; bout <= 1'bz;     end
+	  5'b01100 : begin bout <= Rnbit; dout <= 8'bzzzzzzzz;  end
+	  5'b01010 : begin bout <= Bit; dout <= 8'bzzzzzzzz;    end
+	  default  : begin bout <= 1'bz; dout <= 8'bzzzzzzzz;   end
 	endcase
 endmodule

@@ -85,11 +85,15 @@ module MCU51(XTAL1,XTAL2,RST,EA,ALE,PSEN,P0,P1,P2,P3);
   adder_8bits adder_PCL_next(.a(PC[7:0]),.b(({8{PC_add_rel}}&rel[7:0])),  // PC_add_rel switch 8'h00 to rel
                              .ci(1'b1),.s(PC_next[7:0]),.co(Cy_PC_next)); // always add 1 including rel is added
   
+  // Code ROM internal
+  wire CODE_CS;        // CODE Chip Select 
+  Byte_Mem_pregramed CODE(.clk(clk),.CS(CODE_CS),.addr(PC[7:0]),.dout(BUS[7:0]));
+  
   // Instruction Register
   wire IR_en;              // enter a new Instruction
-  wire [15:0] IR;          // current IR
-  SFR SFR_IR(.clk(clk),.reset(RST),.en(IR_en),.oe(1'b0),.Bb(1'b1),.position(8'hzz),
-         .din(BUS[7:0]),.bin(1'bz),.dout(),.bout(),.cout(IR[7:0]));
+  wire [7:0] IR;           // current IR
+  SFR R_IR(.clk(clk),.reset(RST),.en(IR_en),.oe(1'b0),.Bb(1'b1),.position(8'hzz),
+           .din(BUS[7:0]),.bin(1'bz),.dout(),.bout(),.cout(IR[7:0]));
   
   // Register for Value1(address) temporary
   wire R_V1t_en;            // enter a new temp value
@@ -105,22 +109,56 @@ module MCU51(XTAL1,XTAL2,RST,EA,ALE,PSEN,P0,P1,P2,P3);
   wire [7:0] Value2;        // current temp value in R_V2t for special using
   SFR R_V2t(.clk(clk),.reset(RST),.en(R_V2t_en),.oe(R_V2t_oe),.Bb(Bb),.position(position[7:0]),
             .din(BUS[7:0]),.bin(BUS[8]),.dout(BUS[7:0]),.bout(BUS[8]),.cout(Value2[7:0]));
-  			
+
+  // B
+  wire B_en,B_oe;
+  wire [7:0] B;
+  SFR SFR_B(.clk(clk),.reset(RST),.en(B_en),.oe(B_oe),.Bb(Bb),.position(position[7:0]),
+            .din(BUS[7:0]),.bin(BUS[8]),.dout(BUS[7:0]),.bout(BUS[8]),.cout(B[7:0]));
+  
+  // A
+  wire A_en,A_oe;
+  wire [7:0] A;
+  SFR SFR_A(.clk(clk),.reset(RST),.en(A_en),.oe(A_oe),.Bb(Bb),.position(position[7:0]),
+            .din(BUS[7:0]),.bin(BUS[8]),.dout(BUS[7:0]),.bout(BUS[8]),.cout(A[7:0]));
+			
   // Program State Word
   wire PSW_en,PSW_oe,Cy,AC,F0,RS1,RS0,OV,F1,P;
   SFR PSW(.clk(clk),.reset(RST),.en(PSW_en),.oe(PSW_oe),.Bb(Bb),.position(position[7:0]),
           .din(BUS[7:0]),.bin(BUS[8]),.dout(BUS[7:0]),.bout(BUS[8]),.cout({Cy,AC,F0,RS1,RS0,OV,F1,P}));
 
-  CU ControlUnit(.clk(clk),.reset(reset),.EA(EA),.IR(IR[7:0]),
-                 .Bb(Bb),.position(position[7:0]),
-                 .P0_CON({P0_oe,P0_en,P0_src,P0_re}),
-                 .P1_CON({P1_oe,P1_en,P1_src,P1_re}),
-                 .P2_CON({P2_oe,P2_en,P2_src,P2_re}),
-                 .P3_CON({P3_oe,P3_en,P3_src,P3_re}),
-				 .PC_CON({PC_en,Jump_flag,PC_add_rel}),
-				 .IR_en(IR_en),
-				 .R_Vt1_CON({R_Vt1_en,R_Vt1_oe}),
-				 .R_Vt2_CON({R_Vt2_en,R_Vt2_oe}),
-				 .PSW_CON({PSW_en,PSW_oe})
-				 );
+  // Data RAM internal
+  wire DATA_CS,DATA_RW;
+  reg [7:0] DATA_addr;
+  DATARAM DATA(.clk(clk),.CS(DATA_CS),.RW(DATA_RW),.Bb(Bb),.addr(DATA_addr[7:0]),.position(position[7:0]),
+               .din(BUS[7:0]),.dout(BUS[7:0]),.bin(BUS[8]),.bout(BUS[8]));
+  always@(Rn_ext or Ri_at)
+    case({Rn_ext,Ri_at})
+	2'b00   : DATA_addr   <= Value1[7:0];                    // direct addressing
+	2'b10   : DATA_addr   <= {3'b000,RS1,RS0,IR[2:0]};       // Rn addressing
+	2'b01   : DATA_addr   <= {3'b000,RS1,RS0,2'b00,IR[0]};   // Ri indirect addressing !!! no correct
+	default : DATA_addr   <= 8'hzz;
+	endcase
+
+  // Control Unit
+  wire Rn_ext,Ri_at;
+  wire PSEN_EA;
+  CU ControlUnit(.clk(clk),.reset(RST),.IR(IR[7:0]),.direct(Value1[7:0]),
+          // output control signal
+		  .ALE(ALE),.PSEN(PSEN_EA),
+		  .Bb(Bb),.position(position[7:0]),.Rn_ext(Rn_ext),.Ri_at(Ri_at),
+          .P0_CON({P0_oe,P0_en,P0_src,P0_re}),
+          .P1_CON({P1_oe,P1_en,P1_src,P1_re}),
+          .P2_CON({P2_oe,P2_en,P2_src,P2_re}),
+          .P3_CON({P3_oe,P3_en,P3_src,P3_re}),
+		  .PC_CON({PC_en,Jump_flag,PC_add_rel,rel_en}),
+		  .CODE_CS(CODE_CS),.IR_en(IR_en),
+		  .R_Vt1_CON({R_Vt1_en,R_Vt1_oe}),
+		  .R_Vt2_CON({R_Vt2_en,R_Vt2_oe}),
+		  .ALU_oe(),
+		  .A_CON({A_en,A_oe}),.B_CON({B_en,B_oe}),
+		  .PSW_CON({PSW_en,PSW_oe}),
+		  .XDATA_CON(),.DATA_CON({DATA_RW,DATA_CS})
+		  );
+  assign PSEN = PSEN_EA|EA;
 endmodule

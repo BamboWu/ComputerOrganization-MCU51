@@ -1,11 +1,11 @@
-module top(CLK,reset,P0,P1,P2,P3);
+module top(CLK,resetn,reset,P0,P1,P2,P3);
   
-  input CLK,reset;
+  input CLK,resetn,reset;
   output wire [7:0] P0,P1,P2,P3;
   
   // clock supply
   wire CLK_12MHz;
-  CLK_12MHz clk_src(.CLKIN(CLK),.CLK_12MHz(CLK_12MHz),.resetn(~reset));
+  CLK_12MHz clk_src(.CLKIN(CLK),.CLK_12MHz(CLK_12MHz),.resetn(resetn));
   
   // Micro Control Unit
   MCU51 MCU(.XTAL1(CLK_12MHz),.XTAL2(),.RST(reset),.EA(1'b1),.ALE(),.PSEN(),
