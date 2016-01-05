@@ -42,7 +42,7 @@ module CU(clk,reset,IR,direct,
   output wire [1:0] ALU_CON;                     // {ALU_opcode,ALU_oe};
   output wire [1:0] PSW_CON;                     // {PSW_en,PSW_oe};
   output wire [1:0] A_CON,B_CON;                 // {A/B_en,A/B_oe};
-  output wire [3:0] P0_CON,P1_CON,P2_CON,P3_CON; // {PX_oe,PX_en,PX_src,PX_re};
+  output wire [2:0] P0_CON,P1_CON,P2_CON,P3_CON; // {PX_io,PX_en,PX_oe};
 
 /************************************** STATE *****************************************/ 
   // reg [:] State = {cycles,S,Microp,Addr_src,Addr_dst};
@@ -140,7 +140,9 @@ module CU(clk,reset,IR,direct,
 					.Addr_dst({DATA_dst,XDATA_dst,
 					           rel_en,IR_en,direct_en,bit_en,
 							   R_V1t_CON[1],R_V2t_CON[1],
-					           P0_CON[2],P1_CON[2],P2_CON[2],P3_CON[2],PSW_CON[1],A_CON[1],B_CON[1]}));
+					           P0_CON[1],P1_CON[1],P2_CON[1],P3_CON[1],PSW_CON[1],A_CON[1],B_CON[1]}),
+							   
+					.PortsIO({P3_CON[2],P2_CON[2],P1_CON[2],P0_CON[2]}));
 							   
   always@(XDATA_src or XDATA_dst or DATA_src or DATA_dst or CODE_src)
     begin

@@ -35,6 +35,11 @@ module Byte_Mem_pregramed(clk,CS,addr,dout);
 	  8'h15   : data <= 8'h85; // MOV     ,
 	  8'h16   : data <= 8'h20; //          20H
 	  8'h17   : data <= 8'h01; //      01H
+	  8'h18   : data <= 8'hF5; // MOV     ,A
+	  8'h19   : data <= 8'h80; //      P0
+	  8'h1a   : data <= 8'h85; // MOV     ,
+	  8'h1b   : data <= 8'h20; //          20H
+	  8'h1c   : data <= 8'h90; //      P1
 	  default : data <= 8'h00; // NOP
 	endcase
   always@(*)
