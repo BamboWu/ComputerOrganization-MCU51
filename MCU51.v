@@ -98,14 +98,14 @@ module MCU51(XTAL1,XTAL2,RST,EA,ALE,PSEN,P0,P1,P2,P3);
   // Register for Value1(address) temporary
   wire R_V1t_en;            // enter a new temp value
   wire R_V1t_oe;            // output current temp value in R_V1t
-  wire [7:0] R_V1t_in;      // temp value to enter R_V1t
+  //wire [7:0] R_V1t_in;      // temp value to enter R_V1t
   wire [7:0] Value1;        // current temp value in R_V1t for special using
   SFR R_V1t(.clk(clk),.reset(RST),.en(R_V1t_en),.oe(R_V1t_oe),.Bb(Bb),.position(position[7:0]),
             .din(BUS[7:0]),.bin(BUS[8]),.dout(BUS[7:0]),.bout(BUS[8]),.cout(Value1[7:0]));
   // Register for Value2(data) temporary
   wire R_V2t_en;            // enter a new temp value
   wire R_V2t_oe;            // output current temp value in R_V2t
-  wire [7:0] R_V2t_in;      // temp value to enter R_V2t
+  //wire [7:0] R_V2t_in;      // temp value to enter R_V2t
   wire [7:0] Value2;        // current temp value in R_V2t for special using
   SFR R_V2t(.clk(clk),.reset(RST),.en(R_V2t_en),.oe(R_V2t_oe),.Bb(Bb),.position(position[7:0]),
             .din(BUS[7:0]),.bin(BUS[8]),.dout(BUS[7:0]),.bout(BUS[8]),.cout(Value2[7:0]));
@@ -145,7 +145,7 @@ module MCU51(XTAL1,XTAL2,RST,EA,ALE,PSEN,P0,P1,P2,P3);
   assign Ri_en = {{Ri_decode[1],Ri_decode[0]}&{2{group_decode[3]}},
                   {Ri_decode[1],Ri_decode[0]}&{2{group_decode[2]}},
                   {Ri_decode[1],Ri_decode[0]}&{2{group_decode[1]}},
-                  {Ri_decode[1],Ri_decode[0]}&{2{group_decode[0]}}}&{8{(DATA_addr[7:5] == 3'b000)&~DATA_CS}};
+                  {Ri_decode[1],Ri_decode[0]}&{2{group_decode[0]}}}&{8{(DATA_addr[7:5] == 3'b000)&~(DATA_CS|DATA_RW)}};
   wire [7:0] R1_at_out,R0_at_out;
   SFR R31(.clk(clk),.reset(RST),.en(Ri_en[7]),.oe(RS1&RS2),   .Bb(Bb),.position(position[7:0]),.din(BUS[7:0]),.bin(BUS[8]),.dout(R1_at_out),.bout(),.cout());
   SFR R30(.clk(clk),.reset(RST),.en(Ri_en[6]),.oe(RS1&RS2),   .Bb(Bb),.position(position[7:0]),.din(BUS[7:0]),.bin(BUS[8]),.dout(R0_at_out),.bout(),.cout());
@@ -188,8 +188,8 @@ module MCU51(XTAL1,XTAL2,RST,EA,ALE,PSEN,P0,P1,P2,P3);
 		  .XDATA_CON(),.DATA_CON({DATA_RW,DATA_CS}),
 		  .rel_en(rel_en),
 		  .direct_en(direct_en),.bit_en(bit_en),
-		  .R_Vt1_CON({R_Vt1_en,R_Vt1_oe}),
-		  .R_Vt2_CON({R_Vt2_en,R_Vt2_oe}),
+		  .R_V1t_CON({R_V1t_en,R_V1t_oe}),
+		  .R_V2t_CON({R_V2t_en,R_V2t_oe}),
 		  .ALU_CON(),
 		  .A_CON({A_en,A_oe}),.B_CON({B_en,B_oe}),
 		  .PSW_CON({PSW_en,PSW_oe}),

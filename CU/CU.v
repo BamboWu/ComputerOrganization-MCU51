@@ -7,7 +7,7 @@ module CU(clk,reset,IR,direct,
 		  XDATA_CON,DATA_CON,
 		  rel_en,
 		  direct_en,bit_en,
-		  R_Vt1_CON,R_Vt2_CON,
+		  R_V1t_CON,R_V2t_CON,
 		  ALU_CON,
 		  A_CON,B_CON,PSW_CON,
           P0_CON,P1_CON,P2_CON,P3_CON
@@ -38,7 +38,7 @@ module CU(clk,reset,IR,direct,
   output wire rel_en;                            // enter a new rel
   output wire direct_en,bit_en;                  // enter a new direct/bit address
   
-  output wire [1:0] R_Vt1_CON,R_Vt2_CON;         // {R_Vtx_en,R_Vtx_oe};
+  output wire [1:0] R_V1t_CON,R_V2t_CON;         // {R_Vxt_en,R_Vxt_oe};
   output wire [1:0] ALU_CON;                     // {ALU_opcode,ALU_oe};
   output wire [1:0] PSW_CON;                     // {PSW_en,PSW_oe};
   output wire [1:0] A_CON,B_CON;                 // {A/B_en,A/B_oe};
@@ -134,18 +134,18 @@ module CU(clk,reset,IR,direct,
 					.Bb(Bb),.position(position[7:0]),
 					.Rn_ext(Rn_ext),.Ri_at(Ri_at),  // Rn address extension and Ri indirect addressing
 					.Addr_src({CODE_src,DATA_src,XDATA_src,
-					           R_Vt1_CON[0],R_Vt2_CON[0],ALU_oe,
+					           R_V1t_CON[0],R_V2t_CON[0],ALU_oe,
 					           P0_CON[0],P1_CON[0],P2_CON[0],P3_CON[0],PSW_CON[0],A_CON[0],B_CON[0]}),
 					
 					.Addr_dst({DATA_dst,XDATA_dst,
 					           rel_en,IR_en,direct_en,bit_en,
-							   R_Vt1_CON[1],R_Vt2_CON[1],
+							   R_V1t_CON[1],R_V2t_CON[1],
 					           P0_CON[2],P1_CON[2],P2_CON[2],P3_CON[2],PSW_CON[1],A_CON[1],B_CON[1]}));
 							   
   always@(XDATA_src or XDATA_dst or DATA_src or DATA_dst or CODE_src)
     begin
-	  XDATA_CON <= {~(XDATA_src|XDATA_dst),~XDATA_dst};
-	   DATA_CON <= {~( DATA_src| DATA_dst),~ DATA_dst};
+	  XDATA_CON <= {~XDATA_dst,~(XDATA_src|XDATA_dst)};
+	   DATA_CON <= {~ DATA_dst,~( DATA_src| DATA_dst)};
 	   CODE_CS  <=  ~CODE_src;
 	end
 							   
@@ -171,8 +171,12 @@ module CU(clk,reset,IR,direct,
 	// logic circuit decode cycles
   always@(IR[7:0])
     casex(IR[7:0])
-    // 1 cycle first
-    8'b1110001x : cycles_decoded <= 2'b01;	
+	8'b10X01xxx : cycles_decoded <= 2'b01; // MOV Rn,dir / MOV dir,Rn
+	8'b10000101 : cycles_decoded <= 2'b01; // MOV dir,dir
+	8'b1000011x : cycles_decoded <= 2'b01; // MOV dir,@Ri
+	8'b01110101 : cycles_decoded <= 2'b01; // MOV dir,#
+	8'b1010011x : cycles_decoded <= 2'b01; // MOV @Ri,dir
+    8'b1110001x : cycles_decoded <= 2'b01; // MOVX A,@Ri
 	default : cycles_decoded <= 2'b00;
 	endcase
   

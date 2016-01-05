@@ -11,12 +11,17 @@ module Byte_Mem(clk,CS,RW,addr,din,dout);
   output reg [7:0] dout;
   
   reg [7:0] mem[DEPTH-1:0];
-    
+  // input
   always@(posedge clk)
+    casex({CS,RW})
+	  2'b00 : mem[addr] <= din[7:0];
+	  default : mem[addr] <= mem[addr];
+	endcase
+  // output
+  always@(negedge clk)
     casex({CS,RW})
 	  2'b1x : dout <= {8{1'bz}};
 	  2'b01 : dout <= mem[addr];
-	  2'b00 : mem[addr] <= din[7:0];
 	  default : dout <= {8{1'bz}};
 	endcase
   

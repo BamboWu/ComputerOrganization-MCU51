@@ -26,7 +26,7 @@ module DATARAM(clk,reset,CS,RW,Bb,addr,position,din,dout,bin,bout);
   assign bits = ({8{Bb}}&din[7:0])|({8{~Bb&bin}});
   
   // Bytes Area
-  wire [7:0] Byte;
+  wire [7:0] Byte;    // output of byte area
   Byte_Mem #(.ADDRWIDTH(8)) ByteReg(.clk(clk),.CS(ByteCS),.RW(RW),.addr(addr[7:0]),.din(din[7:0]),.dout(Byte));
   // Bits Area
   wire [7:0] Bits;    // output of bits area
@@ -50,18 +50,18 @@ module DATARAM(clk,reset,CS,RW,Bb,addr,position,din,dout,bin,bout);
   Bit_Mem #(.ADDRWIDTH(5)) RnGroup0(.clk(clk),.CS(RnCSbits[0]),.RW(RW),.addr(addr[4:0]),.din(bits[0]),.dout(Rnbits[0]));
 
   // output
-  wire Rnbit,Bit;
+  wire Rnbit,Bit;  // Rnbit and Bit is one bit of Rnbits and Bits respectively
   assign Rnbit = |(position[7:0]&Rnbits[7:0]);
   assign Bit   = |(position[7:0]&Bits[7:0]);
-  always@(Bb,ByteCS,BitCS,RnCS,RW,Rnbits,Rnbit,Byte,Bits,Bit)
+  always@(Bb or RW or ByteCS or BitCS or RnCS or Rnbits or Rnbit or Bits or Bit or Byte)
     case({Bb,ByteCS,BitCS,RnCS,RW})
-	  5'bxxxx1 : begin dout <= 8'hzz; bout <= 1'bz;         end
-	  5'b11100 : begin dout <= Rnbits[7:0]; bout <= 1'bz;   end
-	  5'b11010 : begin dout <= Bits[7:0]; bout <= 1'bz;     end
-	  5'b10110 : begin dout <= Byte[7:0]; bout <= 1'bz;     end
-	  5'b01100 : begin bout <= Rnbit; dout <= 8'bzzzzzzzz;  end
-	  5'b01010 : begin bout <= Bit; dout <= 8'bzzzzzzzz;    end
-	  default  : begin bout <= 1'bz; dout <= 8'bzzzzzzzz;   end
+	  5'bxxxx0 : begin dout <= 8'hzz;       bout <= 1'bz;         end
+	  5'b11101 : begin dout <= Rnbits[7:0]; bout <= 1'bz;         end
+	  5'b11011 : begin dout <= Bits[7:0];   bout <= 1'bz;         end
+	  5'b10111 : begin dout <= Byte[7:0];   bout <= 1'bz;         end
+	  5'b01101 : begin bout <= Rnbit;       dout <= 8'bzzzzzzzz;  end
+	  5'b01011 : begin bout <= Bit;         dout <= 8'bzzzzzzzz;  end
+	  default  : begin bout <= 1'bz;        dout <= 8'bzzzzzzzz;  end
 	endcase
 endmodule
 /*   // Copy of Ri

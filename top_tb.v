@@ -10,7 +10,6 @@ module top_tb();
   initial begin
 	// Initialize Inputs
 	CLK = 0;
-	#(delay*10) $stop;
   end
   always #(DELAY/2) CLK=~CLK;
   
@@ -22,8 +21,8 @@ module top_tb();
 	reset = 1'b1;
 	#delay;
 	reset = 1'b0;
-	#(delay*8);
-	
+	#(delay*25);
+	$stop;
   end
   
 endmodule

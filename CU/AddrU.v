@@ -28,9 +28,9 @@ module AddrU(IR,direct,
   parameter  DATA_src = 3'b010;
   parameter XDATA_src = 3'b001;
   parameter  SSFR_src = 3'b000;
-  //+{R_Vt1_oe,R_Vt2_oe,ALU_oe}   Super Special Function Registers
-  parameter   Vt1_src = 3'b100;
-  parameter   Vt2_src = 3'b010;
+  //+{R_V1t_oe,R_V2t_oe,ALU_oe}   Super Special Function Registers
+  parameter   V1t_src = 3'b100;
+  parameter   V2t_src = 3'b010;
   parameter   ALU_src = 3'b001;
   parameter   SFR_src = 3'b000;
   //+{P0_re,SP_oe,DPL_oe,DPH_oe,PCON_oe,TCON_oe,TMOD_oe,TL0_oe,TL1_oe,TH0_oe,TH1_oe,P1_re,SCON_oe,SBUF_oe,P2_re,IE_oe,P3_re,IP_oe,PSW_oe,A_oe,B_oe}    User Special Function Registers
@@ -50,13 +50,13 @@ module AddrU(IR,direct,
   parameter   DATA_dst = 2'b10;
   parameter  XDATA_dst = 2'b01;
   parameter   SSFR_dst = 2'b00;
-  //+{rel_en,IR_en,direct_en,bit_en,R_Vt1_en,R_Vt2_en}  Super Special Function Registers
+  //+{rel_en,IR_en,direct_en,bit_en,R_V1t_en,R_V2t_en}  Super Special Function Registers
   parameter    rel_dst = 6'b100000;
   parameter     IR_dst = 6'b010000;
   parameter direct_dst = 6'b001000;
   parameter    bit_dst = 6'b000100;
-  parameter  R_Vt1_dst = 6'b000010;
-  parameter  R_Vt2_dst = 6'b000001;
+  parameter    V1t_dst = 6'b000010;
+  parameter    V2t_dst = 6'b000001;
   parameter    SFR_dst = 6'b000000;
   //+{P0_en,SP_en,DPL_en,DPH_en,PCON_en,TCON_en,TMOD_en,TL0_en,TL1_en,TH0_en,TH1_en,P1_en,SCON_en,SBUF_en,P2_en,IE_en,P3_en,IP_en,PSW_en,A_en,B_en}    User Special Function Registers
   parameter     P0_dst = 7'b1000000;
@@ -80,35 +80,145 @@ module AddrU(IR,direct,
   // control PC
   always@(IR[7:0] or cycles[1:0] or S[2:0] or Phase)
     casex({IR[7:0],cycles[1:0],S[2:0],Phase})
-	{8'bxxxxxxxx,2'b11,S1,1'b1} : begin PC_en <= 1'b1; PC_add_rel <= 1'b0; Jump_flag <= 1'b0; end
 	/******************************* PC add for next Inst. **********************************/
+	{8'bxxxxxxxx,2'b11,S1,1'b1} : begin PC_en <= 1'b1; PC_add_rel <= 1'b0; Jump_flag <= 1'b0; end
+	
+	{8'b11100101,2'b00,S5,1'b0} : begin PC_en <= 1'b1; PC_add_rel <= 1'b0; Jump_flag <= 1'b0; end // MOV A,dir
 	{8'b01110100,2'b00,S5,1'b0} : begin PC_en <= 1'b1; PC_add_rel <= 1'b0; Jump_flag <= 1'b0; end // MOV A,#
+	
+	/******************************* Two cycles Inst. **********************************/
+	{8'b10101xxx,2'b01,S5,1'b0} : begin PC_en <= 1'b1; PC_add_rel <= 1'b0; Jump_flag <= 1'b0; end // MOV Rn,dir
+	
+	{8'b01111xxx,2'b00,S5,1'b0} : begin PC_en <= 1'b1; PC_add_rel <= 1'b0; Jump_flag <= 1'b0; end // MOV Rn,#
+	{8'b11110101,2'b00,S5,1'b0} : begin PC_en <= 1'b1; PC_add_rel <= 1'b0; Jump_flag <= 1'b0; end // MOV dir,A
+	{8'b10001xxx,2'b01,S5,1'b0} : begin PC_en <= 1'b1; PC_add_rel <= 1'b0; Jump_flag <= 1'b0; end // MOV dir,Rn
+	
+	/******************************* Two cycles Three bytes Inst. **********************************/
+	{8'b10000101,2'b01,S5,1'b0} : begin PC_en <= 1'b1; PC_add_rel <= 1'b0; Jump_flag <= 1'b0; end // MOV dir,dir
+	{8'b10000101,2'b00,S5,1'b0} : begin PC_en <= 1'b1; PC_add_rel <= 1'b0; Jump_flag <= 1'b0; end // MOV dir,dir
+	
+	{8'b1000011x,2'b01,S5,1'b0} : begin PC_en <= 1'b1; PC_add_rel <= 1'b0; Jump_flag <= 1'b0; end // MOV dir,@Ri
+	{8'b01110101,2'b01,S5,1'b0} : begin PC_en <= 1'b1; PC_add_rel <= 1'b0; Jump_flag <= 1'b0; end // MOV dir,#
+	{8'b01110101,2'b00,S5,1'b0} : begin PC_en <= 1'b1; PC_add_rel <= 1'b0; Jump_flag <= 1'b0; end // MOV dir,#
+	{8'b1010011x,2'b00,S5,1'b0} : begin PC_en <= 1'b1; PC_add_rel <= 1'b0; Jump_flag <= 1'b0; end // MOV @Ri,dir
+	{8'b0111011x,2'b00,S5,1'b0} : begin PC_en <= 1'b1; PC_add_rel <= 1'b0; Jump_flag <= 1'b0; end // MOV @Ri,#
 	default : begin PC_en <= 1'b0; PC_add_rel <= 1'b0; Jump_flag <= 1'b0; end
 	endcase
   
   // decode Bb,position,Rn_ext,Ri_at
   always@(IR[7:0] or cycles[1:0] or S[2:0])
     casex({IR[7:0],cycles[1:0],S[2:0]})
-	{8'b11111xxx,2'b00,S3} : begin Bb <= 1'b1; position <= 8'h00; Rn_ext <= 1'b1; Ri_at <= 1'b0; end  // MOV Rn,A
+	{8'b111X1xxx,2'b00,S2} : begin Bb <= 1'b1; position <= 8'h00; Rn_ext <= 1'b1; Ri_at <= 1'b0; end  // MOV A,Rn / MOV Rn,A
+	{8'b111X1xxx,2'b00,S3} : begin Bb <= 1'b1; position <= 8'h00; Rn_ext <= 1'b1; Ri_at <= 1'b0; end  // MOV A,Rn / MOV Rn,A
+	{8'b1110011x,2'b00,S2} : begin Bb <= 1'b1; position <= 8'h00; Rn_ext <= 1'b0; Ri_at <= 1'b1; end  // MOV A,@Ri
+	{8'b1110011x,2'b00,S3} : begin Bb <= 1'b1; position <= 8'h00; Rn_ext <= 1'b0; Ri_at <= 1'b1; end  // MOV A,@Ri
+	{8'bX1111xxx,2'b00,S2} : begin Bb <= 1'b1; position <= 8'h00; Rn_ext <= 1'b1; Ri_at <= 1'b0; end  // MOV Rn,A / MOV Rn,#
+	{8'bX1111xxx,2'b00,S3} : begin Bb <= 1'b1; position <= 8'h00; Rn_ext <= 1'b1; Ri_at <= 1'b0; end  // MOV Rn,A / MOV Rn,#
+	{8'b10101xxx,2'b00,S2} : begin Bb <= 1'b1; position <= 8'h00; Rn_ext <= 1'b1; Ri_at <= 1'b0; end  // MOV Rn,dir
+	{8'b10101xxx,2'b00,S3} : begin Bb <= 1'b1; position <= 8'h00; Rn_ext <= 1'b1; Ri_at <= 1'b0; end  // MOV Rn,dir
+	{8'b10001xxx,2'b01,S3} : begin Bb <= 1'b1; position <= 8'h00; Rn_ext <= 1'b1; Ri_at <= 1'b0; end  // MOV dir,Rn
+	{8'b10001xxx,2'b01,S4} : begin Bb <= 1'b1; position <= 8'h00; Rn_ext <= 1'b1; Ri_at <= 1'b0; end  // MOV dir,Rn
+	{8'b1000011x,2'b01,S3} : begin Bb <= 1'b1; position <= 8'h00; Rn_ext <= 1'b0; Ri_at <= 1'b1; end  // MOV dir,@Ri
+	{8'b1000011x,2'b01,S4} : begin Bb <= 1'b1; position <= 8'h00; Rn_ext <= 1'b0; Ri_at <= 1'b1; end  // MOV dir,@Ri
+	{8'bX111011x,2'b00,S2} : begin Bb <= 1'b1; position <= 8'h00; Rn_ext <= 1'b0; Ri_at <= 1'b1; end  // MOV @Ri,A / MOV @Ri,#
+	{8'bX111011x,2'b00,S3} : begin Bb <= 1'b1; position <= 8'h00; Rn_ext <= 1'b0; Ri_at <= 1'b1; end  // MOV @Ri,A / MOV @Ri,#
+	{8'b1010011x,2'b00,S2} : begin Bb <= 1'b1; position <= 8'h00; Rn_ext <= 1'b0; Ri_at <= 1'b1; end  // MOV @Ri,dir
+	{8'b1010011x,2'b00,S3} : begin Bb <= 1'b1; position <= 8'h00; Rn_ext <= 1'b0; Ri_at <= 1'b1; end  // MOV @Ri,dir
 	default : begin Bb <= 1'b1; position <= 8'h00; Rn_ext <= 1'b0; Ri_at <= 1'b0; end
 	endcase  
   
   // decode Addr_src
   always@(IR[7:0] or cycles[1:0] or S[2:0])
     casex({IR[7:0],cycles[1:0],S[2:0],direct[7:0]})
-	{8'bxxxxxxxx,2'b00,S6,8'bxxxxxxxx} : Addr_src <= {CODE_src,SFR_src,{SFR_ennum{1'b0}}};
 	/******************************* Opcode wiat valid **********************************/
+	{8'bxxxxxxxx,2'b00,S6,8'bxxxxxxxx} : Addr_src <= {CODE_src,SFR_src,{SFR_ennum{1'b0}}};
+	
+	{8'b11101xxx,2'b00,S3,8'bxxxxxxxx} : Addr_src <= {DATA_src,SFR_src,{SFR_ennum{1'b0}}}; // MOV A,Rn
+
+	/******************************* Two flows Inst. MOV A,dir **********************************/
+	{8'b11100101,2'b00,S3,8'bxxxxxxxx} : Addr_src <= {CODE_src,SFR_src,{SFR_ennum{1'b0}}}; // MOV A,dir -> load dir
+	{8'b11100101,2'b00,S4,8'bxxxxxxxx} : Addr_src <= {DATA_src,SFR_src,{SFR_ennum{1'b0}}}; // MOV A,dir -> to A
+
+	{8'b1110011x,2'b00,S3,8'bxxxxxxxx} : Addr_src <= {DATA_src,SFR_src,{SFR_ennum{1'b0}}}; // MOV A,@Ri
 	{8'b01110100,2'b00,S3,8'bxxxxxxxx} : Addr_src <= {CODE_src,SFR_src,{SFR_ennum{1'b0}}}; // MOV A,#
 	{8'b11111xxx,2'b00,S3,8'bxxxxxxxx} : Addr_src <= {SSFR_src,SFR_src,{A_src}};           // MOV Rn,A
+
+	/******************************* Two cycles Inst. MOV Rn,dir **********************************/
+	{8'b10101xxx,2'b01,S3,8'bxxxxxxxx} : Addr_src <= {CODE_src,SFR_src,{SFR_ennum{1'b0}}}; // MOV Rn,dir -> load dir
+	{8'b10101xxx,2'b01,S4,8'bxxxxxxxx} : Addr_src <= {DATA_src,SFR_src,{SFR_ennum{1'b0}}}; // MOV Rn,dir -> to Value2
+	{8'b10101xxx,2'b00,S3,8'bxxxxxxxx} : Addr_src <= {SSFR_src,V2t_src,{SFR_ennum{1'b0}}}; // MOV Rn,dir -> to Rn
+
+	{8'b01111xxx,2'b00,S3,8'bxxxxxxxx} : Addr_src <= {CODE_src,SFR_src,{SFR_ennum{1'b0}}}; // MOV Rn,#
+	{8'b11110101,2'b00,S3,8'bxxxxxxxx} : Addr_src <= {CODE_src,SFR_src,{SFR_ennum{1'b0}}}; // MOV dir,A -> load dir
+	{8'b11110101,2'b00,S4,8'bxxxxxxxx} : Addr_src <= {SSFR_src,SFR_src,A_src};             // MOV dir,A -> to dir
+	{8'b10001xxx,2'b01,S3,8'bxxxxxxxx} : Addr_src <= {CODE_src,SFR_src,{SFR_ennum{1'b0}}}; // MOV dir,Rn -> load dir
+	{8'b10001xxx,2'b01,S4,8'bxxxxxxxx} : Addr_src <= {DATA_src,SFR_src,{SFR_ennum{1'b0}}}; // MOV dir,Rn -> to Value2
+	{8'b10001xxx,2'b00,S3,8'bxxxxxxxx} : Addr_src <= {SSFR_src,V2t_src,{SFR_ennum{1'b0}}}; // MOV dir,Rn -> to dir
+	
+	/******************************* Two cycles Three bytes Inst. MOV dir,dir **********************************/
+	{8'b10000101,2'b01,S3,8'bxxxxxxxx} : Addr_src <= {CODE_src,SFR_src,{SFR_ennum{1'b0}}}; // MOV dir,dir -> load dir1
+	{8'b10000101,2'b01,S4,8'bxxxxxxxx} : Addr_src <= {DATA_src,SFR_src,{SFR_ennum{1'b0}}}; // MOV dir,dir -> to Value2
+	{8'b10000101,2'b01,S6,8'bxxxxxxxx} : Addr_src <= {CODE_src,SFR_src,{SFR_ennum{1'b0}}}; // MOV dir,dir -> load dir2
+	{8'b10000101,2'b00,S3,8'bxxxxxxxx} : Addr_src <= {SSFR_src,V2t_src,{SFR_ennum{1'b0}}}; // MOV dir,dir -> to dir2
+	
+	
+	{8'b1000011x,2'b01,S3,8'bxxxxxxxx} : Addr_src <= {CODE_src,SFR_src,{SFR_ennum{1'b0}}}; // MOV dir,@Ri -> load dir
+	{8'b1000011x,2'b01,S4,8'bxxxxxxxx} : Addr_src <= {DATA_src,SFR_src,{SFR_ennum{1'b0}}}; // MOV dir,@Ri -> to Value2
+	{8'b1000011x,2'b00,S3,8'bxxxxxxxx} : Addr_src <= {SSFR_src,V2t_src,{SFR_ennum{1'b0}}}; // MOV dir,@Ri -> to dir
+	{8'b01110101,2'b01,S3,8'bxxxxxxxx} : Addr_src <= {CODE_src,SFR_src,{SFR_ennum{1'b0}}}; // MOV dir,# -> load dir
+	{8'b01110101,2'b01,S6,8'bxxxxxxxx} : Addr_src <= {CODE_src,SFR_src,{SFR_ennum{1'b0}}}; // MOV dir,# -> load #
+	{8'b1111011x,2'b00,S3,8'bxxxxxxxx} : Addr_src <= {SSFR_src,SFR_src,{A_src}};           // MOV @Ri,A
+	{8'b1010011x,2'b01,S3,8'bxxxxxxxx} : Addr_src <= {CODE_src,SFR_src,{SFR_ennum{1'b0}}}; // MOV @Ri,dir -> load dir
+	{8'b1010011x,2'b01,S4,8'bxxxxxxxx} : Addr_src <= {DATA_src,SFR_src,{SFR_ennum{1'b0}}}; // MOV @Ri,dir -> to Value2
+	{8'b1010011x,2'b00,S3,8'bxxxxxxxx} : Addr_src <= {SSFR_src,V2t_src,{SFR_ennum{1'b0}}}; // MOV @Ri,dir -> to @Ri
+	{8'b0111011x,2'b00,S3,8'bxxxxxxxx} : Addr_src <= {CODE_src,SFR_src,{SFR_ennum{1'b0}}}; // MOV @Ri,#
 	default : Addr_src <= {SSFR_src,SFR_src,{SFR_ennum{1'b0}}};
 	endcase
   // decode Addr_dst
   always@(IR[7:0] or cycles[1:0] or S[2:0] or Phase)
     casex({IR[7:0],cycles[1:0],S[2:0],direct[7:0],Phase})
-	{8'bxxxxxxxx,2'b00,S6,8'bxxxxxxxx,1'b1} : Addr_dst <= {SSFR_dst,IR_dst,{SFR_ennum{1'b0}}};
 	/******************************* Opcode wiat valid **********************************/
-	{8'b01110100,2'b00,S3,8'bxxxxxxxx,1'b1} : Addr_dst <= {SSFR_dst,SFR_dst,A_dst};             // MOV A,#
-	{8'b11111xxx,2'b00,S3,8'bxxxxxxxx,1'b1} : Addr_dst <= {DATA_dst,SFR_dst,{SFR_ennum{1'b0}}}; // MOV Rn,A
+	{8'bxxxxxxxx,2'b00,S6,8'bxxxxxxxx,1'b1} : Addr_dst <= {SSFR_dst,IR_dst,{SFR_ennum{1'b0}}};
+	
+	{8'b11101xxx,2'b00,S3,8'bxxxxxxxx,1'b1} : Addr_dst <= {SSFR_dst,SFR_dst,A_dst};                       // MOV A,Rn
+
+	/******************************* Two flows Inst. MOV A,dir **********************************/
+	{8'b11100101,2'b00,S3,8'bxxxxxxxx,1'b1} : Addr_dst <= {SSFR_dst,direct_dst,{SFR_ennum{1'b0}}};        // MOV A,dir -> load dir
+	{8'b11100101,2'b00,S4,8'bxxxxxxxx,1'b1} : Addr_dst <= {SSFR_dst,SFR_dst,A_dst};                       // MOV A,dir -> to A
+	
+	{8'b1110011x,2'b00,S3,8'bxxxxxxxx,1'b1} : Addr_dst <= {SSFR_dst,SFR_dst,A_dst};                       // MOV A,@Ri
+	{8'b01110100,2'b00,S3,8'bxxxxxxxx,1'b1} : Addr_dst <= {SSFR_dst,SFR_dst,A_dst};                       // MOV A,#
+	{8'b11111xxx,2'b00,S3,8'bxxxxxxxx,1'b1} : Addr_dst <= {DATA_dst,SFR_dst,{SFR_ennum{1'b0}}};           // MOV Rn,A
+	
+	/******************************* Two cycles Inst. MOV Rn,dir **********************************/
+	{8'b10101xxx,2'b01,S3,8'bxxxxxxxx,1'b1} : Addr_dst <= {SSFR_dst,direct_dst,{SFR_ennum{1'b0}}};        // MOV Rn,dir -> load dir
+	{8'b10101xxx,2'b01,S4,8'bxxxxxxxx,1'b1} : Addr_dst <= {SSFR_dst,V2t_dst,{SFR_ennum{1'b0}}};           // MOV Rn,dir -> to Value2
+	{8'b10101xxx,2'b00,S3,8'bxxxxxxxx,1'b1} : Addr_dst <= {DATA_dst,SFR_dst,{SFR_ennum{1'b0}}};           // MOV Rn,dir -> to Rn
+	
+	{8'b01111xxx,2'b00,S3,8'bxxxxxxxx,1'b1} : Addr_dst <= {DATA_dst,SFR_dst,{SFR_ennum{1'b0}}};           // MOV Rn,#
+	{8'b11110101,2'b00,S3,8'bxxxxxxxx,1'b1} : Addr_dst <= {SSFR_dst,direct_dst,{SFR_ennum{1'b0}}};        // MOV dir,A -> load dir
+	{8'b11110101,2'b00,S4,8'bxxxxxxxx,1'b1} : Addr_dst <= {DATA_dst,SFR_dst,{SFR_ennum{1'b0}}};           // MOV dir,A -> to dir
+	{8'b10001xxx,2'b01,S3,8'bxxxxxxxx,1'b1} : Addr_dst <= {SSFR_dst,direct_dst,{SFR_ennum{1'b0}}};        // MOV dir,Rn -> load dir
+	{8'b10001xxx,2'b01,S4,8'bxxxxxxxx,1'b1} : Addr_dst <= {SSFR_dst,V2t_dst,{SFR_ennum{1'b0}}};           // MOV dir,Rn -> to Value2
+	{8'b10001xxx,2'b00,S3,8'bxxxxxxxx,1'b1} : Addr_dst <= {DATA_dst,SFR_dst,{SFR_ennum{1'b0}}};           // MOV dir,Rn -> to dir
+	
+	/******************************* Two cycles Three bytes Inst. MOV dir,dir **********************************/
+	{8'b10000101,2'b01,S3,8'bxxxxxxxx,1'b1} : Addr_dst <= {SSFR_dst,direct_dst,{SFR_ennum{1'b0}}};        // MOV dir,dir -> load dir1
+	{8'b10000101,2'b01,S4,8'bxxxxxxxx,1'b1} : Addr_dst <= {SSFR_dst,V2t_dst,{SFR_ennum{1'b0}}};           // MOV dir,dir -> to Value2
+	{8'b10000101,2'b01,S6,8'bxxxxxxxx,1'b1} : Addr_dst <= {SSFR_dst,direct_dst,{SFR_ennum{1'b0}}};        // MOV dir,dir -> load dir2
+	{8'b10000101,2'b00,S3,8'bxxxxxxxx,1'b1} : Addr_dst <= {DATA_dst,SFR_dst,{SFR_ennum{1'b0}}};           // MOV dir,dir -> to dir2
+	
+	{8'b1000011x,2'b01,S3,8'bxxxxxxxx,1'b1} : Addr_dst <= {SSFR_dst,direct_dst,{SFR_ennum{1'b0}}};        // MOV dir,@Ri -> load dir
+	{8'b1000011x,2'b01,S4,8'bxxxxxxxx,1'b1} : Addr_dst <= {SSFR_dst,V2t_dst,{SFR_ennum{1'b0}}};           // MOV dir,@Ri -> to Value2
+	{8'b1000011x,2'b00,S3,8'bxxxxxxxx,1'b1} : Addr_dst <= {DATA_dst,SFR_dst,{SFR_ennum{1'b0}}};           // MOV dir,@Ri -> to dir
+	{8'b01110101,2'b01,S3,8'bxxxxxxxx,1'b1} : Addr_dst <= {SSFR_dst,direct_dst,{SFR_ennum{1'b0}}};        // MOV dir,# -> load dir
+	{8'b01110101,2'b01,S6,8'bxxxxxxxx,1'b1} : Addr_dst <= {DATA_dst,SFR_dst,{SFR_ennum{1'b0}}};           // MOV dir,# -> load #
+	{8'b1111011x,2'b00,S3,8'bxxxxxxxx,1'b1} : Addr_dst <= {DATA_dst,SFR_dst,{SFR_ennum{1'b0}}};           // MOV @Ri,A
+	{8'b1010011x,2'b01,S3,8'bxxxxxxxx,1'b1} : Addr_dst <= {SSFR_dst,direct_dst,{SFR_ennum{1'b0}}};        // MOV @Ri,dir -> load dir
+	{8'b1010011x,2'b01,S4,8'bxxxxxxxx,1'b1} : Addr_dst <= {SSFR_dst,V2t_dst,{SFR_ennum{1'b0}}};           // MOV @Ri,dir -> to Value2
+	{8'b1010011x,2'b00,S3,8'bxxxxxxxx,1'b1} : Addr_dst <= {DATA_dst,SFR_dst,{SFR_ennum{1'b0}}};           // MOV @Ri,dir -> to @Ri
+	{8'b0111011x,2'b00,S3,8'bxxxxxxxx,1'b1} : Addr_dst <= {DATA_dst,SFR_dst,{SFR_ennum{1'b0}}};           // MOV @Ri,#
+	
 	default : Addr_dst <= {SSFR_dst,SFR_dst,{SFR_ennum{1'b0}}};
 	endcase
 
