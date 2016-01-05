@@ -11,9 +11,9 @@ module Byte_Mem_pregramed(clk,CS,addr,dout);
     
   always@(negedge clk)
     casex(addr[7:0])
-	  8'h00   : data <= 8'h78;
+	  8'h00   : data <= 8'h74;
 	  8'h01   : data <= 8'h55;
-	  8'h02   : data <= 8'hE8;
+	  8'h02   : data <= 8'hF8;
 	  8'h03   : data <= 8'hFF;
 	  default : data <= 8'h00;
 	endcase

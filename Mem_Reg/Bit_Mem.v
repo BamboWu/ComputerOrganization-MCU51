@@ -12,7 +12,7 @@ module Bit_Mem(clk,CS,RW,addr,din,dout);
   
   reg mem[DEPTH-1:0];
   
-  always@(negedge clk)
+  always@(posedge clk)
     casex({CS,RW})
 	  2'b1x : dout <= 1'bz;
 	  2'b01 : dout <= mem[addr];

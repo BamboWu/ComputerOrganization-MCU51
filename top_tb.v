@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 module top_tb();
   parameter DELAY = 10;
-  parameter delay = DELAY*(100/12);
+  parameter delay = 1000;
   reg CLK,resetn,reset;
   wire [7:0] P0,P1,P2,P3;  
   
@@ -10,36 +10,19 @@ module top_tb();
   initial begin
 	// Initialize Inputs
 	CLK = 0;
-	#(delay*300) $stop;
+	#(delay*10) $stop;
   end
   always #(DELAY/2) CLK=~CLK;
   
   initial begin
     resetn = 1'b0;
-    #(delay*2);
+    #(DELAY*2);
     resetn = 1'b1;
-	#(delay*100);
+	#(DELAY*500);
 	reset = 1'b1;
-	#(delay*2);
+	#delay;
 	reset = 1'b0;
-	#(delay*15);
-	#(DELAY*12);
-	        
-	#(DELAY*12);
-            
-	#(DELAY*12);
-	        
-	#(DELAY*12);
-	        
-	#(DELAY*12);
-	        
-	#(DELAY*12);
-	        
-	#(DELAY*12);
-            
-	#(DELAY*12);
-            
-	#(DELAY*12);
+	#(delay*8);
 	
   end
   
