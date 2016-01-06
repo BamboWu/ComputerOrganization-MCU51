@@ -36,7 +36,7 @@ module AddrU(IR,direct,
   parameter   V2t_src = 3'b010;
   parameter   ALU_src = 3'b001;
   parameter   SFR_src = 3'b000;
-  //+{P0_re,SP_oe,DPL_oe,DPH_oe,PCON_oe,TCON_oe,TMOD_oe,TL0_oe,TL1_oe,TH0_oe,TH1_oe,P1_re,SCON_oe,SBUF_oe,P2_re,IE_oe,P3_re,IP_oe,PSW_oe,A_oe,B_oe}    User Special Function Registers
+  //+{P0_oe,SP_oe,DPL_oe,DPH_oe,PCON_oe,TCON_oe,TMOD_oe,TL0_oe,TL1_oe,TH0_oe,TH1_oe,P1_oe,SCON_oe,SBUF_oe,P2_oe,IE_oe,P3_oe,IP_oe,PSW_oe,A_oe,B_oe}    User Special Function Registers
   parameter    P0_src = 7'b1000000;
   parameter    P1_src = 7'b0100000;
   parameter    P2_src = 7'b0010000;

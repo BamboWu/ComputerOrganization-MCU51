@@ -101,11 +101,26 @@ module MCU51(XTAL1,XTAL2,RST,EA,ALE,PSEN,P0,P1,P2,P3);
   wire [7:0] Value2;        // current temp value in R_V2t for special using
   SFR R_V2t(.clk(clk),.reset(RST),.en(R_V2t_en),.oe(R_V2t_oe),.Bb(Bb),.position(position[7:0]),
             .din(BUS[7:0]),.bin(BUS[8]),.dout(BUS[7:0]),.bout(BUS[8]),.cout(Value2[7:0]));
-
+  
+  /*** Arithmetic Logic Unit ***/
+  wire [3:0] ALUCode;
+  wire [7:0] Result;
+  wire Carry,AssistantCarry,OVerflow;
+  ALU ALUin51(.ALUCode(ALUCode[3:0]),.A(Value1[7:0]),.B(Value2[7:0]),.Cy(Cy),.AC(AC),
+              .Result(Result[7:0]),.Carry(Carry),.AssistantCarry(AssistantCarry),.OVerflow(OVerflow));
+  wire ALU_oe;
+  SFR R_ALU(.clk(clk),reset(RST),.en(1'b1),.oe(ALU_oe),.Bb(Bb),.position(position[7:0]),
+            .din(Result[8:0]),.bin(1'bz),.dout(BUS[7:0]),.bout(BUS[8]),.cout());
+			
   /*** Program State Word ***/
-  wire PSW_en,PSW_oe,Cy,AC,F0,RS1,RS0,OV,F1,P;
-  SFR PSW(.clk(clk),.reset(RST),.en(PSW_en),.oe(PSW_oe),.Bb(Bb),.position(position[7:0]),
-          .din(BUS[7:0]),.bin(BUS[8]),.dout(BUS[7:0]),.bout(BUS[8]),.cout({Cy,AC,F0,RS1,RS0,OV,F1,P}));
+  wire PSW_en,PSW_oe;
+  wire [7:0] PSW_in;
+  wire Cy,AC,F0,RS1,RS0,OV,F1,P;
+  SFR PSW(.clk(clk),.reset(RST),.en(1'b1),.oe(PSW_oe),.Bb(Bb),.position(position[7:0]),
+          .din(PSW_in[7:0]),.bin(BUS[8]),.dout(BUS[7:0]),.bout(BUS[8]),.cout({Cy,AC,F0,RS1,RS0,OV,F1,P}));
+  assign PSW_in = PSW_en ? BUS[7:0] : 
+                          {8{~ALU_oe}}&{Cy,AC,F0,RS1,RS0,OV,F1,^A}|
+						  {8{ ALU_oe}}&{Carry,AssistantCarry,F0,RS1,RS0,OVerflow,F1,^A};
 
   /*** B ***/
   wire B_en,B_oe;
@@ -114,11 +129,13 @@ module MCU51(XTAL1,XTAL2,RST,EA,ALE,PSEN,P0,P1,P2,P3);
             .din(BUS[7:0]),.bin(BUS[8]),.dout(BUS[7:0]),.bout(BUS[8]),.cout(B[7:0]));
   
   /*** A ***/
-  wire A_en,A_oe;
-  wire [7:0] A;
+  wire A_en,A_oe,A_bypass;
+  wire [7:0] A_in,A;
   SFR SFR_A(.clk(clk),.reset(RST),.en(A_en),.oe(A_oe),.Bb(Bb),.position(position[7:0]),
-            .din(BUS[7:0]),.bin(BUS[8]),.dout(BUS[7:0]),.bout(BUS[8]),.cout(A[7:0]));
-			
+            .din(A_in[7:0]),.bin(BUS[8]),.dout(BUS[7:0]),.bout(BUS[8]),.cout(A[7:0]));
+  assign A_bypass = A_en&A_oe;
+  assign A_in = A_bypass ? Result[7:0] : BUS[7:0];
+  
   /*** Data RAM internal ***/
   wire DATA_CS,DATA_RW;
   reg [7:0] DATA_addr;
@@ -182,7 +199,7 @@ module MCU51(XTAL1,XTAL2,RST,EA,ALE,PSEN,P0,P1,P2,P3);
 		  .direct_en(direct_en),.bit_en(bit_en),
 		  .R_V1t_CON({R_V1t_en,R_V1t_oe}),
 		  .R_V2t_CON({R_V2t_en,R_V2t_oe}),
-		  .ALU_CON(),
+		  .ALU_CON(ALUCode[3:0],ALU_oe),
 		  .A_CON({A_en,A_oe}),.B_CON({B_en,B_oe}),
 		  .PSW_CON({PSW_en,PSW_oe}),
           .P0_CON({P0_io,P0_en,P0_oe}),

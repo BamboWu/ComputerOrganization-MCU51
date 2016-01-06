@@ -39,7 +39,7 @@ module CU(clk,reset,IR,direct,
   output wire direct_en,bit_en;                  // enter a new direct/bit address
   
   output wire [1:0] R_V1t_CON,R_V2t_CON;         // {R_Vxt_en,R_Vxt_oe};
-  output wire [1:0] ALU_CON;                     // {ALU_opcode,ALU_oe};
+  output wire [4:0] ALU_CON;                     // {ALU_opcode,ALU_oe};
   output wire [1:0] PSW_CON;                     // {PSW_en,PSW_oe};
   output wire [1:0] A_CON,B_CON;                 // {A/B_en,A/B_oe};
   output wire [2:0] P0_CON,P1_CON,P2_CON,P3_CON; // {PX_io,PX_en,PX_oe};
@@ -134,7 +134,7 @@ module CU(clk,reset,IR,direct,
 					.Bb(Bb),.position(position[7:0]),
 					.Rn_ext(Rn_ext),.Ri_at(Ri_at),  // Rn address extension and Ri indirect addressing
 					.Addr_src({CODE_src,DATA_src,XDATA_src,
-					           R_V1t_CON[0],R_V2t_CON[0],ALU_oe,
+					           R_V1t_CON[0],R_V2t_CON[0],ALU_CON[0],
 					           P0_CON[0],P1_CON[0],P2_CON[0],P3_CON[0],PSW_CON[0],A_CON[0],B_CON[0]}),
 					
 					.Addr_dst({DATA_dst,XDATA_dst,
@@ -150,7 +150,51 @@ module CU(clk,reset,IR,direct,
 	   DATA_CON <= {~ DATA_dst,~( DATA_src| DATA_dst)};
 	   CODE_CS  <=  ~CODE_src;
 	end
-							   
+
+/************************************** ALUCODE *****************************************/  
+    // Decoded ALU operation select (ALUsel) signals
+    parameter	 alu_inc  =  4'b0000;
+    parameter	 alu_dec  =  4'b0001;
+    parameter	 alu_add  =  4'b0010;
+    parameter	 alu_addc =  4'b0011;
+    parameter	 alu_orl  =  4'b0100;
+    parameter	 alu_anl  =  4'b0101;
+    parameter	 alu_xrl  =  4'b0110;
+	parameter    alu_cpl  =  4'b0111;
+	parameter    alu_da   =  4'b1000;
+    parameter	 alu_subb =  4'b1001;
+	parameter    alu_rr   =  4'b1100;
+	parameter    alu_rrc  =  4'b1101;
+	parameter    alu_rl   =  4'b1110;
+	parameter    alu_rlc  =  4'b1111;
+  // ALUCode decode
+  always@(IR[7:0])
+    casex(IR[7:0])
+	8'b00101xxx,                            // ADD  A,Rn
+	8'b001001XX : ALU_CON[4:1] <= alu_add;  // ADD  A,#/dir/@Ri
+	8'b00111xxx,
+	8'b001101XX : ALU_CON[4:1] <= alu_addc; // ADDC A,#/dir/@Ri
+	8'b10011xxx,
+	8'b100101XX : ALU_CON[4:1] <= alu_subb; // SUBB A,#/dir/@Ri
+	8'b00001xxx,
+	8'b000001XX : ALU_CON[4:1] <= alu_inc;  // INC    A/dir/@Ri
+	8'b00011xxx,
+	8'b000101XX : ALU_CON[4:1] <= alu_dec;  // DEC    A/dir/@Ri
+	8'b11010100 : ALU_CON[4:1] <= alu_da;   // DA   A
+	8'b01011xxx,
+	8'b010101XX : ALU_CON[4:1] <= alu_anl;  // ANL    #/dir/@Ri
+	8'b01001xxx,
+	8'b010001XX : ALU_CON[4:1] <= alu_orl;  // ORL    #/dir/@Ri
+	8'b01101xxx,
+	8'b011001XX : ALU_CON[4:1] <= alu_xrl;  // XRL    #/dir/@Ri
+	8'b11110100 : ALU_CON[4:1] <= alu_cpl;  // CPL  A
+	8'b00100011 : ALU_CON[4:1] <= alu_rl;   // RL   A
+	8'b00110011 : ALU_CON[4:1] <= alu_rlc;  // RLC  A
+	8'b00000011 : ALU_CON[4:1] <= alu_rr;   // RR   A
+	8'b00010011 : ALU_CON[4:1] <= alu_rrc;  // RR   A
+	default : ALU_CON[5:1] <= 4'b0111;
+	endcase
+	
 /************************************** ALE PSEN WR *****************************************/
   // ALE PSEN produce
   wire MOVX;
