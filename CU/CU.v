@@ -39,9 +39,10 @@ module CU(clk,reset,IR,direct,
   output wire direct_en,bit_en;                  // enter a new direct/bit address
   
   output wire [1:0] R_V1t_CON,R_V2t_CON;         // {R_Vxt_en,R_Vxt_oe};
-  output wire [4:0] ALU_CON;                     // {ALU_opcode,ALU_oe};
+  output reg  [6:0] ALU_CON;                     // {R_ALU_oe,A_used,ALU_opcode,ALU_oe};
   output wire [1:0] PSW_CON;                     // {PSW_en,PSW_oe};
-  output wire [1:0] A_CON,B_CON;                 // {A/B_en,A/B_oe};
+  output wire [2:0] A_CON;                       // {A_bypass,A_en,A_oe};
+  output wire [1:0] B_CON;                       // {B_en,B_oe};
   output wire [2:0] P0_CON,P1_CON,P2_CON,P3_CON; // {PX_io,PX_en,PX_oe};
 
 /************************************** STATE *****************************************/ 
@@ -126,7 +127,7 @@ module CU(clk,reset,IR,direct,
 
 /************************************** ADDRS *****************************************/  
   // Address Unit
-  wire XDATA_src,XDATA_dst,DATA_src,DATA_dst,CODE_src;
+  wire XDATA_src,XDATA_dst,DATA_src,DATA_dst,CODE_src,ALU_oe;
   AddrU AddressUnit(.IR(IR[7:0]),.direct(direct[7:0]),
                     .cycles(cycles[1:0]),.S(S[2:0]),.Phase(Phase),
 					// output
@@ -134,7 +135,7 @@ module CU(clk,reset,IR,direct,
 					.Bb(Bb),.position(position[7:0]),
 					.Rn_ext(Rn_ext),.Ri_at(Ri_at),  // Rn address extension and Ri indirect addressing
 					.Addr_src({CODE_src,DATA_src,XDATA_src,
-					           R_V1t_CON[0],R_V2t_CON[0],ALU_CON[0],
+					           R_V1t_CON[0],R_V2t_CON[0],ALU_oe,
 					           P0_CON[0],P1_CON[0],P2_CON[0],P3_CON[0],PSW_CON[0],A_CON[0],B_CON[0]}),
 					
 					.Addr_dst({DATA_dst,XDATA_dst,
@@ -150,6 +151,17 @@ module CU(clk,reset,IR,direct,
 	   DATA_CON <= {~ DATA_dst,~( DATA_src| DATA_dst)};
 	   CODE_CS  <=  ~CODE_src;
 	end
+  always@(ALU_oe or S[2:0])
+	casex({cycles[1:0],IR[7:0]})
+	/* !!! ugly design !!! */
+	{2'b00,8'b000X1xxx} : begin  ALU_CON[6] <= ALU_oe&(S==S5); ALU_CON[0] <= ALU_oe&(S==S4);   end // INC/DEC Rn
+	{2'b00,8'b000X011x} : begin  ALU_CON[6] <= ALU_oe&(S==S5); ALU_CON[0] <= ALU_oe&(S==S4);   end // INC/DEC @Ri
+	{2'b00,8'b000X0101} : begin  ALU_CON[6] <= ALU_oe&(S==S5); ALU_CON[0] <= ALU_oe&(S==S4);   end // INC/DEC dir
+	
+	{2'b00,8'b010X0011} : begin  ALU_CON[6] <= ALU_oe; ALU_CON[0] <= 1'b0;                     end // ORL/ANL dir,#
+	{2'b00,8'b01100011} : begin  ALU_CON[6] <= ALU_oe; ALU_CON[0] <= 1'b0;                     end // XRL     dir,#
+	default             : begin  ALU_CON[6] <= 1'b0;   ALU_CON[0] <= ALU_oe;                   end
+	endcase
 
 /************************************** ALUCODE *****************************************/  
     // Decoded ALU operation select (ALUsel) signals
@@ -170,30 +182,43 @@ module CU(clk,reset,IR,direct,
   // ALUCode decode
   always@(IR[7:0])
     casex(IR[7:0])
-	8'b00101xxx,                            // ADD  A,Rn
-	8'b001001XX : ALU_CON[4:1] <= alu_add;  // ADD  A,#/dir/@Ri
-	8'b00111xxx,
-	8'b001101XX : ALU_CON[4:1] <= alu_addc; // ADDC A,#/dir/@Ri
-	8'b10011xxx,
-	8'b100101XX : ALU_CON[4:1] <= alu_subb; // SUBB A,#/dir/@Ri
-	8'b00001xxx,
-	8'b000001XX : ALU_CON[4:1] <= alu_inc;  // INC    A/dir/@Ri
-	8'b00011xxx,
-	8'b000101XX : ALU_CON[4:1] <= alu_dec;  // DEC    A/dir/@Ri
-	8'b11010100 : ALU_CON[4:1] <= alu_da;   // DA   A
-	8'b01011xxx,
-	8'b010101XX : ALU_CON[4:1] <= alu_anl;  // ANL    #/dir/@Ri
+	8'b00101xxx,                            // ADD  A,  Rn
+	8'b001001XX : ALU_CON[4:1] <= alu_add;  // ADD  A,  #/dir/@Ri
+	8'b00111xxx,                                        
+	8'b001101XX : ALU_CON[4:1] <= alu_addc; // ADDC A,  #/dir/@Ri
+	8'b10011xxx,                                        
+	8'b100101XX : ALU_CON[4:1] <= alu_subb; // SUBB A,  #/dir/@Ri
+	8'b00001xxx,                                        
+	8'b000001XX : ALU_CON[4:1] <= alu_inc;  // INC      A/dir/@Ri
+	8'b00011xxx,                                        
+	8'b000101XX : ALU_CON[4:1] <= alu_dec;  // DEC      A/dir/@Ri
+	8'b11010100 : ALU_CON[4:1] <= alu_da;   // DA       A
+	8'b01011xxx,                                        
+	8'b010101XX,                            // ANL      #/dir/@Ri
+    8'b0101001X	: ALU_CON[4:1] <= alu_anl;  // ANL  dir,A/#
 	8'b01001xxx,
-	8'b010001XX : ALU_CON[4:1] <= alu_orl;  // ORL    #/dir/@Ri
-	8'b01101xxx,
-	8'b011001XX : ALU_CON[4:1] <= alu_xrl;  // XRL    #/dir/@Ri
+	8'b010001XX,                            // ORL      #/dir/@Ri
+	8'b0100001X : ALU_CON[4:1] <= alu_orl;  // ORL  dir,A/#
+	8'b01101xxx,                                        
+	8'b011001XX,                            // XRL      #/dir/@Ri
+	8'b0110001X : ALU_CON[4:1] <= alu_xrl;  // XRL  dir,A/#
 	8'b11110100 : ALU_CON[4:1] <= alu_cpl;  // CPL  A
 	8'b00100011 : ALU_CON[4:1] <= alu_rl;   // RL   A
 	8'b00110011 : ALU_CON[4:1] <= alu_rlc;  // RLC  A
 	8'b00000011 : ALU_CON[4:1] <= alu_rr;   // RR   A
 	8'b00010011 : ALU_CON[4:1] <= alu_rrc;  // RR   A
-	default : ALU_CON[5:1] <= 4'b0111;
+	default : ALU_CON[4:1] <= 4'b0111;
 	endcase
+  // A_used
+  always@(IR[7:0])
+    casex(IR[7:0])
+	8'b000X0101 : ALU_CON[5] <= 1'b0; // INC/DEC  dir
+	8'b000X011x : ALU_CON[5] <= 1'b0; // INC/DEC  @Ri
+	8'b000X1xxx : ALU_CON[5] <= 1'b0; // INC/DEC  Rn
+	default : ALU_CON[5] <= 1'b1;
+	endcase
+  // A_bypass
+  assign  A_CON[2] = A_CON[1]&(S==S5);
 	
 /************************************** ALE PSEN WR *****************************************/
   // ALE PSEN produce

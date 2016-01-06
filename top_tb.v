@@ -21,7 +21,7 @@ module top_tb();
 	reset = 1'b1;
 	#delay;
 	reset = 1'b0;
-	#(delay*25);
+	#(delay*27);
 	$stop;
   end
   

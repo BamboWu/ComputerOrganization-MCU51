@@ -102,26 +102,26 @@ module MCU51(XTAL1,XTAL2,RST,EA,ALE,PSEN,P0,P1,P2,P3);
   SFR R_V2t(.clk(clk),.reset(RST),.en(R_V2t_en),.oe(R_V2t_oe),.Bb(Bb),.position(position[7:0]),
             .din(BUS[7:0]),.bin(BUS[8]),.dout(BUS[7:0]),.bout(BUS[8]),.cout(Value2[7:0]));
   
-  /*** Arithmetic Logic Unit ***/
-  wire [3:0] ALUCode;
-  wire [7:0] Result;
-  wire Carry,AssistantCarry,OVerflow;
-  ALU ALUin51(.ALUCode(ALUCode[3:0]),.A(Value1[7:0]),.B(Value2[7:0]),.Cy(Cy),.AC(AC),
-              .Result(Result[7:0]),.Carry(Carry),.AssistantCarry(AssistantCarry),.OVerflow(OVerflow));
-  wire ALU_oe;
-  SFR R_ALU(.clk(clk),reset(RST),.en(1'b1),.oe(ALU_oe),.Bb(Bb),.position(position[7:0]),
-            .din(Result[8:0]),.bin(1'bz),.dout(BUS[7:0]),.bout(BUS[8]),.cout());
-			
   /*** Program State Word ***/
   wire PSW_en,PSW_oe;
   wire [7:0] PSW_in;
   wire Cy,AC,F0,RS1,RS0,OV,F1,P;
-  SFR PSW(.clk(clk),.reset(RST),.en(1'b1),.oe(PSW_oe),.Bb(Bb),.position(position[7:0]),
+  wire Phase;//reg  Cy2ALU,AC2ALU;
+  SFR PSW(.clk(clk),.reset(RST),.en(PSW_en|(ALU_oe&Phase)),.oe(PSW_oe),.Bb(Bb),.position(position[7:0]),
           .din(PSW_in[7:0]),.bin(BUS[8]),.dout(BUS[7:0]),.bout(BUS[8]),.cout({Cy,AC,F0,RS1,RS0,OV,F1,P}));
   assign PSW_in = PSW_en ? BUS[7:0] : 
                           {8{~ALU_oe}}&{Cy,AC,F0,RS1,RS0,OV,F1,^A}|
 						  {8{ ALU_oe}}&{Carry,AssistantCarry,F0,RS1,RS0,OVerflow,F1,^A};
+  //always@(negedge ALU_oe) begin Cy2ALU <= Cy; AC2ALU <= AC; end
 
+  /*** Arithmetic Logic Unit ***/
+  wire [3:0] ALUCode;
+  wire A_used;
+  reg  [7:0] A2ALU;
+  wire [7:0] Result;
+  wire Carry,AssistantCarry,OVerflow;
+  ALU ALUin51(.ALUCode(ALUCode[3:0]),.A(A_used?A2ALU[7:0]:BUS[7:0]),.B(Value2[7:0]),.Cy(Cy),.AC(AC),
+              .Result(Result[7:0]),.Carry(Carry),.AssistantCarry(AssistantCarry),.OVerflow(OVerflow));
   /*** B ***/
   wire B_en,B_oe;
   wire [7:0] B;
@@ -129,12 +129,16 @@ module MCU51(XTAL1,XTAL2,RST,EA,ALE,PSEN,P0,P1,P2,P3);
             .din(BUS[7:0]),.bin(BUS[8]),.dout(BUS[7:0]),.bout(BUS[8]),.cout(B[7:0]));
   
   /*** A ***/
-  wire A_en,A_oe,A_bypass;
+  wire A_en,A_oe;
   wire [7:0] A_in,A;
   SFR SFR_A(.clk(clk),.reset(RST),.en(A_en),.oe(A_oe),.Bb(Bb),.position(position[7:0]),
             .din(A_in[7:0]),.bin(BUS[8]),.dout(BUS[7:0]),.bout(BUS[8]),.cout(A[7:0]));
-  assign A_bypass = A_en&A_oe;
-  assign A_in = A_bypass ? Result[7:0] : BUS[7:0];
+  assign A_in = ALU_oe ? Result[7:0] : BUS[7:0];
+  always@(negedge clk)    A2ALU <= A[7:0];
+  // to hold the results of ALU discarded by A
+  wire R_ALU_oe;  // recall the result of ALU
+  SFR R_ALU(.clk(clk),.reset(RST),.en(ALU_oe),.oe(R_ALU_oe),.Bb(Bb),.position(position[7:0]),
+            .din(Result[7:0]),.bin(1'bz),.dout(BUS[7:0]),.bout(BUS[8]),.cout());			
   
   /*** Data RAM internal ***/
   wire DATA_CS,DATA_RW;
@@ -189,7 +193,7 @@ module MCU51(XTAL1,XTAL2,RST,EA,ALE,PSEN,P0,P1,P2,P3);
   wire PSEN_EA;
   CU ControlUnit(.clk(clk),.reset(RST),.IR(IR[7:0]),.direct(direct[7:0]),
           // output control signal
-		  .Phase(),.ALE(ALE),.PSEN(PSEN_EA),.RD(),.WR(),
+		  .Phase(Phase),.ALE(ALE),.PSEN(PSEN_EA),.RD(),.WR(),
 		  .PC_CON({PC_en,Jump_flag,PC_add_rel}),
 		  .CODE_CS(CODE_CS),.IR_en(IR_en),
 		  .Bb(Bb),.position(position[7:0]),
@@ -199,8 +203,8 @@ module MCU51(XTAL1,XTAL2,RST,EA,ALE,PSEN,P0,P1,P2,P3);
 		  .direct_en(direct_en),.bit_en(bit_en),
 		  .R_V1t_CON({R_V1t_en,R_V1t_oe}),
 		  .R_V2t_CON({R_V2t_en,R_V2t_oe}),
-		  .ALU_CON(ALUCode[3:0],ALU_oe),
-		  .A_CON({A_en,A_oe}),.B_CON({B_en,B_oe}),
+		  .ALU_CON({R_ALU_oe,A_used,ALUCode[3:0],ALU_oe}),
+		  .A_CON({A_bypass,A_en,A_oe}),.B_CON({B_en,B_oe}),
 		  .PSW_CON({PSW_en,PSW_oe}),
           .P0_CON({P0_io,P0_en,P0_oe}),
           .P1_CON({P1_io,P1_en,P1_oe}),
