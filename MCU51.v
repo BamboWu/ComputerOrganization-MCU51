@@ -55,10 +55,10 @@ module MCU51(XTAL1,XTAL2,RST,EA,ALE,PSEN,P0,P1,P2,P3);
   /*** Program Counter ***/
   wire PC_en;              // enter a new PC
   wire [15:0] PC_in,PC;    // next PC and current PC
-  SFR PCH(.clk(clk),.reset(RST),.en(PC_en),.oe(1'b0),.Bb(1'b1),.position(8'hzz),
-          .din(PC_in[15:8]),.bin(1'bz),.dout(),.bout(),.cout(PC[15:8]));
-  SFR PCL(.clk(clk),.reset(RST),.en(PC_en),.oe(1'b0),.Bb(1'b1),.position(8'hzz),
-          .din(PC_in[7:0]),.bin(1'bz),.dout(),.bout(),.cout(PC[7:0]));
+  SFR PCH(.clk(clk),.reset(RST),.en(PC_en),.oe(1'b0),.Bb(1'b1),.position(8'h00),
+          .din(PC_in[15:8]),.bin(1'b0),.dout(),.bout(),.cout(PC[15:8]));
+  SFR PCL(.clk(clk),.reset(RST),.en(PC_en),.oe(1'b0),.Bb(1'b1),.position(8'h00),
+          .din(PC_in[7:0]),.bin(1'b0),.dout(),.bout(),.cout(PC[7:0]));
   // MUX for PC_in
   wire Jump_flag;                  // H take jump, L no jump !!!including rel!!!
   wire [15:0] PC_Jump,PC_next;     // new PC for jump taken or untaken
@@ -66,8 +66,8 @@ module MCU51(XTAL1,XTAL2,RST,EA,ALE,PSEN,P0,P1,P2,P3);
   // Register for rel. rel is different from addr11/addr16/direct/data for it take add
   wire rel_en;                     // enter a new rel
   wire [7:0] rel;                  // current rel out from R_rel
-  SFR R_rel(.clk(clk),.reset(RST),.en(rel_en),.oe(1'b0),.Bb(1'b1),.position(8'hzz),
-          .din(BUS[7:0]),.bin(1'bz),.dout(),.bout(),.cout(rel[7:0]));
+  SFR R_rel(.clk(clk),.reset(RST),.en(rel_en),.oe(1'b0),.Bb(1'b1),.position(8'h00),
+          .din(BUS[7:0]),.bin(1'b0),.dout(),.bout(),.cout(rel[7:0]));
   // adder for PC_next
   wire PC_add_rel;                 // control PC to add rel or not,  H add rel, L add 1
   wire Cy_PC_next;                 // Carry from PCL to PCH
@@ -83,8 +83,8 @@ module MCU51(XTAL1,XTAL2,RST,EA,ALE,PSEN,P0,P1,P2,P3);
   /*** Instruction Register ***/
   wire IR_en;              // enter a new Instruction
   wire [7:0] IR;           // current IR
-  SFR R_IR(.clk(clk),.reset(RST),.en(IR_en),.oe(1'b0),.Bb(1'b1),.position(8'hzz),
-           .din(BUS[7:0]),.bin(1'bz),.dout(),.bout(),.cout(IR[7:0]));
+  SFR R_IR(.clk(clk),.reset(RST),.en(IR_en),.oe(1'b0),.Bb(1'b1),.position(8'h00),
+           .din(BUS[7:0]),.bin(1'b0),.dout(),.bout(),.cout(IR[7:0]));
   
   /*** Registers for values temporary ***/
   // Register for Value1(address) temporary
@@ -165,24 +165,24 @@ module MCU51(XTAL1,XTAL2,RST,EA,ALE,PSEN,P0,P1,P2,P3);
                   {Ri_decode[1],Ri_decode[0]}&{2{group_decode[1]}},
                   {Ri_decode[1],Ri_decode[0]}&{2{group_decode[0]}}}&{8{(DATA_addr[7:5] == 3'b000)&~(DATA_CS|DATA_RW)}};
   wire [7:0] R1_at_out,R0_at_out;
-  SFR R31(.clk(clk),.reset(RST),.en(Ri_en[7]),.oe(RS1&RS2),   .Bb(Bb),.position(position[7:0]),.din(BUS[7:0]),.bin(BUS[8]),.dout(R1_at_out),.bout(),.cout());
-  SFR R30(.clk(clk),.reset(RST),.en(Ri_en[6]),.oe(RS1&RS2),   .Bb(Bb),.position(position[7:0]),.din(BUS[7:0]),.bin(BUS[8]),.dout(R0_at_out),.bout(),.cout());
-  SFR R21(.clk(clk),.reset(RST),.en(Ri_en[5]),.oe(RS1&~RS2),  .Bb(Bb),.position(position[7:0]),.din(BUS[7:0]),.bin(BUS[8]),.dout(R1_at_out),.bout(),.cout());
-  SFR R20(.clk(clk),.reset(RST),.en(Ri_en[4]),.oe(RS1&~RS2),  .Bb(Bb),.position(position[7:0]),.din(BUS[7:0]),.bin(BUS[8]),.dout(R0_at_out),.bout(),.cout());
-  SFR R11(.clk(clk),.reset(RST),.en(Ri_en[3]),.oe(~RS1&RS2),  .Bb(Bb),.position(position[7:0]),.din(BUS[7:0]),.bin(BUS[8]),.dout(R1_at_out),.bout(),.cout());
-  SFR R10(.clk(clk),.reset(RST),.en(Ri_en[2]),.oe(~RS1&RS2),  .Bb(Bb),.position(position[7:0]),.din(BUS[7:0]),.bin(BUS[8]),.dout(R0_at_out),.bout(),.cout());
-  SFR R01(.clk(clk),.reset(RST),.en(Ri_en[1]),.oe(~(RS1&RS2)),.Bb(Bb),.position(position[7:0]),.din(BUS[7:0]),.bin(BUS[8]),.dout(R1_at_out),.bout(),.cout());
-  SFR R00(.clk(clk),.reset(RST),.en(Ri_en[0]),.oe(~(RS1&RS2)),.Bb(Bb),.position(position[7:0]),.din(BUS[7:0]),.bin(BUS[8]),.dout(R0_at_out),.bout(),.cout());
+  SFR R31(.clk(clk),.reset(RST),.en(Ri_en[7]),.oe(RS1&RS0),   .Bb(Bb),.position(position[7:0]),.din(BUS[7:0]),.bin(BUS[8]),.dout(R1_at_out),.bout(),.cout());
+  SFR R30(.clk(clk),.reset(RST),.en(Ri_en[6]),.oe(RS1&RS0),   .Bb(Bb),.position(position[7:0]),.din(BUS[7:0]),.bin(BUS[8]),.dout(R0_at_out),.bout(),.cout());
+  SFR R21(.clk(clk),.reset(RST),.en(Ri_en[5]),.oe(RS1&~RS0),  .Bb(Bb),.position(position[7:0]),.din(BUS[7:0]),.bin(BUS[8]),.dout(R1_at_out),.bout(),.cout());
+  SFR R20(.clk(clk),.reset(RST),.en(Ri_en[4]),.oe(RS1&~RS0),  .Bb(Bb),.position(position[7:0]),.din(BUS[7:0]),.bin(BUS[8]),.dout(R0_at_out),.bout(),.cout());
+  SFR R11(.clk(clk),.reset(RST),.en(Ri_en[3]),.oe(~RS1&RS0),  .Bb(Bb),.position(position[7:0]),.din(BUS[7:0]),.bin(BUS[8]),.dout(R1_at_out),.bout(),.cout());
+  SFR R10(.clk(clk),.reset(RST),.en(Ri_en[2]),.oe(~RS1&RS0),  .Bb(Bb),.position(position[7:0]),.din(BUS[7:0]),.bin(BUS[8]),.dout(R0_at_out),.bout(),.cout());
+  SFR R01(.clk(clk),.reset(RST),.en(Ri_en[1]),.oe(~(RS1&RS0)),.Bb(Bb),.position(position[7:0]),.din(BUS[7:0]),.bin(BUS[8]),.dout(R1_at_out),.bout(),.cout());
+  SFR R00(.clk(clk),.reset(RST),.en(Ri_en[0]),.oe(~(RS1&RS0)),.Bb(Bb),.position(position[7:0]),.din(BUS[7:0]),.bin(BUS[8]),.dout(R0_at_out),.bout(),.cout());
   // Register for direct
   wire direct_en;                     // enter a new direct
   wire [7:0] direct;                  // current direct out from R_direct
-  SFR R_direct(.clk(clk),.reset(RST),.en(direct_en),.oe(1'b0),.Bb(1'b1),.position(8'hzz),
-               .din(BUS[7:0]),.bin(1'bz),.dout(),.bout(),.cout(direct[7:0]));
+  SFR R_direct(.clk(clk),.reset(RST),.en(direct_en),.oe(1'b0),.Bb(1'b1),.position(8'h00),
+               .din(BUS[7:0]),.bin(1'b0),.dout(),.bout(),.cout(direct[7:0]));
   // Register for rel. rel is different from addr11/addr16/direct/data for it take add
   wire bit_en;                     // enter a new bit address
   wire [7:0] bit_addr;             // current bit address out from R_bit.  bit is a keep word!!! so bit_addr used!!!
-  SFR R_bit(.clk(clk),.reset(RST),.en(bit_en),.oe(1'b0),.Bb(1'b1),.position(8'hzz),
-            .din(BUS[7:0]),.bin(1'bz),.dout(),.bout(),.cout(bit_addr[7:0]));
+  SFR R_bit(.clk(clk),.reset(RST),.en(bit_en),.oe(1'b0),.Bb(1'b1),.position(8'h00),
+            .din(BUS[7:0]),.bin(1'b0),.dout(),.bout(),.cout(bit_addr[7:0]));
   // addressing: direct or Rn extension or Ri indirect or bit 
   wire Rn_ext,Ri_at;
   always@(clk)
@@ -198,7 +198,7 @@ module MCU51(XTAL1,XTAL2,RST,EA,ALE,PSEN,P0,P1,P2,P3);
   wire CLR_oe,SWAP_oe;
   SFR SFR_CLR(.clk(clk),.reset(RST),.en(~CLR_oe),.oe(CLR_oe),.Bb(Bb),.position(position[7:0]),
               .din(8'h00),.bin(1'b0),.dout(BUS[7:0]),.bout(BUS[8]),.cout());
-  SFR SFR_SWAP(.clk(clk),.reset(RST),.en(~SWAP_oe),.oe(SWAP_oe),.Bb(1'b1),.position(8'bzz),
+  SFR SFR_SWAP(.clk(clk),.reset(RST),.en(~SWAP_oe),.oe(SWAP_oe),.Bb(1'b1),.position(8'h00),
                .din({A[3:0],A[7:4]}),.bin(1'b0),.dout(BUS[7:0]),.bout(),.cout());  
 
   /*** Control Unit ***/

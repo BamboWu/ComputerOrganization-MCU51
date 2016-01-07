@@ -1,6 +1,6 @@
-module DATARAM(clk,reset,CS,RW,Bb,addr,position,din,dout,bin,bout);
+module DATARAM(clk,CS,RW,Bb,addr,position,din,dout,bin,bout);
   
-  input clk,reset;
+  input clk;
   input CS;  // Chip Select, L valid
   input RW;  // Read/Write,  H Read, L Write
   input Bb;  // Byte/bit,    H Byte, L bit

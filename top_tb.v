@@ -2,10 +2,10 @@
 module top_tb();
   parameter DELAY = 10;
   parameter delay = 1000;
-  reg CLK,resetn,reset;
+  reg CLK,reset,resetclk;
   wire [7:0] P0,P1,P2,P3;  
   
-  top uut(.CLK(CLK),.resetn(resetn),.reset(reset),.P0(P0),.P1(P1),.P2(P2),.P3(P3));
+  top uut(.CLK(CLK),.reset(reset),.resetclk(resetclk),.MHz12(),/*.P0(),*/.P1(P1)/*,.P2(),.P3()*/);
   
   initial begin
 	// Initialize Inputs
@@ -14,9 +14,9 @@ module top_tb();
   always #(DELAY/2) CLK=~CLK;
   
   initial begin
-    resetn = 1'b0;
+    resetclk = 1'b1;
     #(DELAY*2);
-    resetn = 1'b1;
+    resetclk = 1'b0;
 	#(DELAY*500);
 	reset = 1'b1;
 	#delay;

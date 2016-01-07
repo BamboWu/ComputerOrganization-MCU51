@@ -84,7 +84,7 @@ module AddrU(IR,direct,ZA,ZALU,
   // instructions list
   
   // control PC
-  always@(IR[7:0] or cycles[1:0] or S[2:0] or Phase)
+  always@(IR[7:0] or cycles[1:0] or S[2:0] or Phase or ZA or ZALU)
     casex({IR[7:0],cycles[1:0],S[2:0],Phase})
 	/******************************* PC add for next Inst. **********************************/
 	{8'bxxxxxxxx,2'b11,S1,1'b1} : begin PC_en <= 1'b1; PC_add_rel <= 1'b0; Jump_flag <= 1'b0; end
@@ -158,8 +158,8 @@ module AddrU(IR,direct,ZA,ZALU,
 	{8'b10001xxx,2'b01,S4} : begin Bb <= 1'b1; position <= 8'h00; Rn_ext <= 1'b1; Ri_at <= 1'b0; end  // MOV dir,Rn
 	{8'b1000011x,2'b01,S3} : begin Bb <= 1'b1; position <= 8'h00; Rn_ext <= 1'b0; Ri_at <= 1'b1; end  // MOV dir,@Ri
 	{8'b1000011x,2'b01,S4} : begin Bb <= 1'b1; position <= 8'h00; Rn_ext <= 1'b0; Ri_at <= 1'b1; end  // MOV dir,@Ri
-	{8'bX111011x,2'b00,S2} : begin Bb <= 1'b1; position <= 8'h00; Rn_ext <= 1'b0; Ri_at <= 1'b1; end  // MOV @Ri,A / MOV @Ri,#
-	{8'bX111011x,2'b00,S3} : begin Bb <= 1'b1; position <= 8'h00; Rn_ext <= 1'b0; Ri_at <= 1'b1; end  // MOV @Ri,A / MOV @Ri,#
+	{8'b1111011x,2'b00,S2} : begin Bb <= 1'b1; position <= 8'h00; Rn_ext <= 1'b0; Ri_at <= 1'b1; end  // MOV @Ri,A / MOV @Ri,#(combined with ALU, and longer)
+	{8'b1111011x,2'b00,S3} : begin Bb <= 1'b1; position <= 8'h00; Rn_ext <= 1'b0; Ri_at <= 1'b1; end  // MOV @Ri,A / MOV @Ri,#(combined with ALU, and longer)
 	{8'b1010011x,2'b00,S2} : begin Bb <= 1'b1; position <= 8'h00; Rn_ext <= 1'b0; Ri_at <= 1'b1; end  // MOV @Ri,dir
 	{8'b1010011x,2'b00,S3} : begin Bb <= 1'b1; position <= 8'h00; Rn_ext <= 1'b0; Ri_at <= 1'b1; end  // MOV @Ri,dir
 	{8'b0XXX1xxx,2'b00,S2} : begin Bb <= 1'b1; position <= 8'h00; Rn_ext <= 1'b1; Ri_at <= 1'b0; end  // INC/DEC/ADD/ADDC/ORL/ANL/XRL/MOV (A,)Rn(#)
@@ -374,7 +374,7 @@ module AddrU(IR,direct,ZA,ZALU,
 	default : Addr_src <= {SSFR_src,SFR_src,{SFR_ennum{1'b0}}};
 	endcase
   // decode Addr_dst
-  always@(IR[7:0] or cycles[1:0] or S[2:0] or Phase)
+  always@(IR[7:0] or cycles[1:0] or S[2:0] or Phase or direct[7:0])
     casex({IR[7:0],cycles[1:0],S[2:0],direct[7:0],Phase})
 	/******************************* Opcode wiat valid **********************************/
 	{8'bxxxxxxxx,2'b00,S6,8'bxxxxxxxx,1'b1} : Addr_dst <= {SSFR_dst,IR_dst,{SFR_ennum{1'b0}}};

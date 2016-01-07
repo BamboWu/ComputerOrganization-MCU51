@@ -154,7 +154,7 @@ module CU(clk,reset,IR,direct,ZA,ZALU,
 	   DATA_CON <= {~ DATA_dst,~( DATA_src| DATA_dst)};
 	   CODE_CS  <=  ~CODE_src;
 	end
-  always@(ALU_oe or S[2:0])
+  always@(ALU_oe or S[2:0] or cycles[1:0] or IR[7:0])
 	casex({cycles[1:0],IR[7:0]})
 	/* !!! ugly design !!! */
 	{2'b00,8'b000X1xxx} : begin  ALU_CON[6] <= ALU_oe&(S==S5); ALU_CON[0] <= ALU_oe&(S==S4);   end // INC/DEC Rn

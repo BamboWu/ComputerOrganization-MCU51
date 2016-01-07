@@ -21,7 +21,7 @@ module SFR(clk,reset,en,oe,Bb,position,din,bin,dout,bout,cout);
 	assign bits = (cout[WIDTH-1:0]&(~position[WIDTH-1:0]))|({WIDTH{bin}}&position[WIDTH-1:0]);
 	
 	// modify
-	always @(posedge clk or posedge reset)
+	always @(posedge clk)
         casex({reset,en,Bb})
 		    3'b1xx : cout <= INITV;
 			3'b011 : cout <= din[WIDTH-1:0];
