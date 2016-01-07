@@ -26,17 +26,19 @@ module AddrU(IR,direct,ZA,ZALU,
   
   output reg [3:0] PortsIO;  // Ports input or output, H output, L input
   
-  output reg [12:0] Addr_src;
+  output reg [14:0] Addr_src;
   // {CODE_src,DATA_src,XDATA_src} Memory
   parameter  CODE_src = 3'b100;
   parameter  DATA_src = 3'b010;
   parameter XDATA_src = 3'b001;
   parameter  SSFR_src = 3'b000;
-  //+{R_V1t_oe,R_V2t_oe,ALU_oe}   Super Special Function Registers
-  parameter   V1t_src = 3'b100;
-  parameter   V2t_src = 3'b010;
-  parameter   ALU_src = 3'b001;
-  parameter   SFR_src = 3'b000;
+  //+{R_V1t_oe,R_V2t_oe,ALU_oe,CLR_oe,SWAP_oe}   Super Special Function Registers
+  parameter   V1t_src = 5'b10000;
+  parameter   V2t_src = 5'b01000;
+  parameter   ALU_src = 5'b00100;
+  parameter   CLR_src = 5'b00010;
+  parameter  SWAP_src = 5'b00001;
+  parameter   SFR_src = 5'b00000;
   //+{P0_oe,SP_oe,DPL_oe,DPH_oe,PCON_oe,TCON_oe,TMOD_oe,TL0_oe,TL1_oe,TH0_oe,TH1_oe,P1_oe,SCON_oe,SBUF_oe,P2_oe,IE_oe,P3_oe,IP_oe,PSW_oe,A_oe,B_oe}    User Special Function Registers
   parameter    P0_src = 7'b1000000;
   parameter    P1_src = 7'b0100000;
@@ -299,6 +301,8 @@ module AddrU(IR,direct,ZA,ZALU,
 	{8'b11011xxx,2'b00,S5,8'bxxxxxxxx} : Addr_src <= {SSFR_src,ALU_src,{SFR_ennum{1'b0}}}; // DJNZ Rn
     {8'b11010101,2'b00,S5,8'bxxxxxxxx} : Addr_src <= {SSFR_src,ALU_src,{SFR_ennum{1'b0}}}; // DJNZ dir    
 	
+	{8'b11100100,2'b00,S3,8'bxxxxxxxx} : Addr_src <= {SSFR_src,CLR_src,{SFR_ennum{1'b0}}}; // CLR  A
+	{8'b11000100,2'b00,S3,8'bxxxxxxxx} : Addr_src <= {SSFR_src,SWAP_src,{SFR_ennum{1'b0}}};// SWAP A
 	/******************************* !direct of SFR patches! **********************************/
 	{8'b11100101,2'b00,S4,8'b11110000} : Addr_src <= {DATA_src,SFR_src,B_src};             // MOV A,dir -> to A
 	{8'b11100101,2'b00,S4,8'b11100000} : Addr_src <= {DATA_src,SFR_src,A_src};             // MOV A,dir -> to A
@@ -465,6 +469,7 @@ module AddrU(IR,direct,ZA,ZALU,
 	{8'b11010101,2'b00,S5,8'b0xxxxxxx,1'b1} : Addr_dst <= {DATA_dst,SFR_dst,{SFR_ennum{1'b0}}};           // DJNZ dir
     {8'b11011xxx,2'b00,S5,8'bxxxxxxxx,1'b1} : Addr_dst <= {DATA_dst,SFR_dst,{SFR_ennum{1'b0}}};           // DJNZ Rn
 	
+	{8'b11X00100,2'b00,S3,8'bxxxxxxxx,1'b1} : Addr_dst <= {SSFR_dst,SFR_dst,A_dst};                       // SWAP/CLR  A
 	/******************************* !direct of SFR patches! **********************************/
 	{8'b11110101,2'b00,S4,8'b11110000,1'b1} : Addr_dst <= {SSFR_dst,SFR_dst,B_dst};                       // MOV dir,A -> to dir
 	{8'b11110101,2'b00,S4,8'b11100000,1'b1} : Addr_dst <= {SSFR_dst,SFR_dst,A_dst};                       // MOV dir,A -> to dir

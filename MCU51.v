@@ -194,6 +194,13 @@ module MCU51(XTAL1,XTAL2,RST,EA,ALE,PSEN,P0,P1,P2,P3);
 	default  : DATA_addr   <= 8'hzz;
 	endcase
 
+  /*** CLR Register and SWAP Register ***/
+  wire CLR_oe,SWAP_oe;
+  SFR SFR_CLR(.clk(clk),.reset(RST),.en(~CLR_oe),.oe(CLR_oe),.Bb(Bb),.position(position[7:0]),
+              .din(8'h00),.bin(1'b0),.dout(BUS[7:0]),.bout(BUS[8]),.cout());
+  SFR SFR_SWAP(.clk(clk),.reset(RST),.en(~SWAP_oe),.oe(SWAP_oe),.Bb(1'b1),.position(8'bzz),
+               .din({A[3:0],A[7:4]}),.bin(1'b0),.dout(BUS[7:0]),.bout(),.cout());  
+
   /*** Control Unit ***/
   wire PSEN_EA;
   CU ControlUnit(.clk(clk),.reset(RST),.IR(IR[7:0]),.direct(direct[7:0]),.ZA(ZA),.ZALU(ZALU),
@@ -211,6 +218,7 @@ module MCU51(XTAL1,XTAL2,RST,EA,ALE,PSEN,P0,P1,P2,P3);
 		  .ALU_CON({R_ALU_oe,A_used,ALUCode[3:0],ALU_oe}),
 		  .A_CON({A_bypass,A_en,A_oe}),.B_CON({B_en,B_oe}),
 		  .PSW_CON({PSW_en,PSW_oe}),
+		  .CLR_oe(CLR_oe),.SWAP_oe(SWAP_oe),
           .P0_CON({P0_io,P0_en,P0_oe}),
           .P1_CON({P1_io,P1_en,P1_oe}),
           .P2_CON({P2_io,P2_en,P2_oe}),

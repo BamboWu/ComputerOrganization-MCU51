@@ -12,9 +12,9 @@ module Byte_Mem_pregramed(clk,CS,addr,dout);
   always@(negedge clk)
     casex(addr[7:0])
 	  8'h00   : data <= 8'h74; // MOV  A,
-	  8'h01   : data <= 8'h07; //          #07H
-	  8'h02   : data <= 8'h78; // MOV  R0, 
-	  8'h03   : data <= 8'h06; //          #06H 
+	  8'h01   : data <= 8'hA5; //          #A5H
+	  8'h02   : data <= 8'hC4; // SWAP A 
+	  8'h03   : data <= 8'hE4; // CLR  A 
 	  8'h04   : data <= 8'h76; // MOV  @R0,
 	  8'h05   : data <= 8'h07; //          #07H
 	  8'h06   : data <= 8'h60; // JZ
@@ -114,6 +114,45 @@ endmodule
 	  8'h1a   : data <= 8'h03; // RR   A
 	  8'h1b   : data <= 8'h44; // ORL  A,
 	  8'h1c   : data <= 8'h55; //          #55H
+	  8'h1d   : data <= 8'h85; // MOV      ,
+	  8'h1e   : data <= 8'h30; //           30H
+	  8'h1f   : data <= 8'h90; //      P1
+	  8'h20   : data <= 8'h05; // INC
+	  8'h21   : data <= 8'h90; //      P1
+	  8'h22   : data <= 8'h18; // DEC  R0
+	  8'h23   : data <= 8'h06; // INC  @R0
+	  8'h24   : data <= 8'hE6; // MOV  A,   @R0 */
+	// test control
+	/* 
+	  8'h00   : data <= 8'h74; // MOV  A,
+	  8'h01   : data <= 8'h07; //          #07H
+	  8'h02   : data <= 8'h78; // MOV  R0, 
+	  8'h03   : data <= 8'h06; //          #06H 
+	  8'h04   : data <= 8'h76; // MOV  @R0,
+	  8'h05   : data <= 8'h07; //          #07H
+	  8'h06   : data <= 8'h60; // JZ
+	  8'h07   : data <= 8'hF8; //          #-08H
+	  8'h08   : data <= 8'hB4; // CJNE A,
+	  8'h09   : data <= 8'h07; //          #07H,
+	  8'h0a   : data <= 8'hF5; //                #-0BH
+	  8'h0b   : data <= 8'hB6; // CJNE @R0,
+      8'h0c   : data <= 8'h07; //          #07H,
+	  8'h0d   : data <= 8'hF2; //                #-0EH
+	  8'h0e   : data <= 8'hB5; // CJNE A,
+	  8'h0f   : data <= 8'h06; //          06H,
+	  8'h10   : data <= 8'hEF; //                #-11H
+	  8'h11   : data <= 8'hF5; // MOV      ,A
+	  8'h12   : data <= 8'h90; //      P1
+	  8'h13   : data <= 8'h7F; // MOV  R7,
+	  8'h14   : data <= 8'h05; //          #05H
+	  8'h15   : data <= 8'hDF; // DJNZ R7,
+	  8'h16   : data <= 8'hFE; //          #-02H
+	  8'h17   : data <= 8'hD5; // DJNZ
+	  8'h18   : data <= 8'h90; //      P1,
+	  8'h19   : data <= 8'hF9; //          #-07H
+	  8'h1a   : data <= 8'h00; // NOP
+	  8'h1b   : data <= 8'h80; // SJMP
+	  8'h1c   : data <= 8'hF3; //          #-0DH
 	  8'h1d   : data <= 8'h85; // MOV      ,
 	  8'h1e   : data <= 8'h30; //           30H
 	  8'h1f   : data <= 8'h90; //      P1

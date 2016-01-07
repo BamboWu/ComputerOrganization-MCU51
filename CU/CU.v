@@ -10,6 +10,7 @@ module CU(clk,reset,IR,direct,ZA,ZALU,
 		  R_V1t_CON,R_V2t_CON,
 		  ALU_CON,
 		  A_CON,B_CON,PSW_CON,
+		  CLR_oe,SWAP_oe,
           P0_CON,P1_CON,P2_CON,P3_CON
 		  );
 
@@ -44,6 +45,7 @@ module CU(clk,reset,IR,direct,ZA,ZALU,
   output wire [1:0] PSW_CON;                     // {PSW_en,PSW_oe};
   output wire [2:0] A_CON;                       // {A_bypass,A_en,A_oe};
   output wire [1:0] B_CON;                       // {B_en,B_oe};
+  output wire CLR_oe,SWAP_oe;                    //
   output wire [2:0] P0_CON,P1_CON,P2_CON,P3_CON; // {PX_io,PX_en,PX_oe};
 
 /************************************** STATE *****************************************/ 
@@ -136,7 +138,7 @@ module CU(clk,reset,IR,direct,ZA,ZALU,
 					.Bb(Bb),.position(position[7:0]),
 					.Rn_ext(Rn_ext),.Ri_at(Ri_at),  // Rn address extension and Ri indirect addressing
 					.Addr_src({CODE_src,DATA_src,XDATA_src,
-					           R_V1t_CON[0],R_V2t_CON[0],ALU_oe,
+					           R_V1t_CON[0],R_V2t_CON[0],ALU_oe,CLR_oe,SWAP_oe,
 					           P0_CON[0],P1_CON[0],P2_CON[0],P3_CON[0],PSW_CON[0],A_CON[0],B_CON[0]}),
 					
 					.Addr_dst({DATA_dst,XDATA_dst,
