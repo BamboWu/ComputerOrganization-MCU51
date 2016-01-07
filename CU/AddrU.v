@@ -1,4 +1,4 @@
-module AddrU(IR,direct,
+module AddrU(IR,direct,ZA,ZALU,
              cycles,S,Phase,
 			 // output
 			 PC_en,PC_add_rel,Jump_flag,
@@ -9,6 +9,7 @@ module AddrU(IR,direct,
 /************************************** PORTS *****************************************/		  
   input [7:0] IR;
   input [7:0] direct;
+  input ZA,ZALU;
   
   input [1:0] cycles;        // cycles remained
   input [2:0] S;             // current S
@@ -118,6 +119,25 @@ module AddrU(IR,direct,
 	{8'b010X0011,2'b01,S5,1'b0} : begin PC_en <= 1'b1; PC_add_rel <= 1'b0; Jump_flag <= 1'b0; end // ORL/ANL  dir,  #
 	{8'b01100011,2'b01,S5,1'b0} : begin PC_en <= 1'b1; PC_add_rel <= 1'b0; Jump_flag <= 1'b0; end // XRL      dir,  #
 	
+	{8'b10000000,2'b00,S4,1'b1} : begin PC_en <= 1'b0; PC_add_rel <= 1'b1; Jump_flag <= 1'b0; end // SJMP
+	{8'b10000000,2'b00,S5,1'b0} : begin PC_en <= 1'b1; PC_add_rel <= 1'b1; Jump_flag <= 1'b0; end // SJMP
+	{8'b01100000,2'b00,S4,1'b1} : begin PC_en <= 1'b0; PC_add_rel <= ZA;   Jump_flag <= 1'b0; end // JZ
+	{8'b01100000,2'b00,S5,1'b0} : begin PC_en <= 1'b1; PC_add_rel <= ZA;   Jump_flag <= 1'b0; end // JZ
+	{8'b01110000,2'b00,S4,1'b1} : begin PC_en <= 1'b0; PC_add_rel <= ~ZA;  Jump_flag <= 1'b0; end // JNZ
+	{8'b01110000,2'b00,S5,1'b0} : begin PC_en <= 1'b1; PC_add_rel <= ~ZA;  Jump_flag <= 1'b0; end // JNZ
+	{8'b101101XX,2'b01,S5,1'b0} : begin PC_en <= 1'b1; PC_add_rel <= 1'b0; Jump_flag <= 1'b0; end // CJNE    A,#/A,dir/@Ri,#
+	{8'b10111xxx,2'b01,S5,1'b0} : begin PC_en <= 1'b1; PC_add_rel <= 1'b0; Jump_flag <= 1'b0; end // CJNE    Rn,#
+	{8'b101101XX,2'b00,S4,1'b1} : begin PC_en <= 1'b0; PC_add_rel <= ~ZALU;Jump_flag <= 1'b0; end // CJNE    A,#/A,dir/@Ri,#
+	{8'b101101XX,2'b00,S5,1'b0} : begin PC_en <= 1'b1; PC_add_rel <= ~ZALU;Jump_flag <= 1'b0; end // CJNE    A,#/A,dir/@Ri,#
+	{8'b10111xxx,2'b00,S4,1'b1} : begin PC_en <= 1'b0; PC_add_rel <= ~ZALU;Jump_flag <= 1'b0; end // CJNE    Rn,#
+	{8'b10111xxx,2'b00,S5,1'b0} : begin PC_en <= 1'b1; PC_add_rel <= ~ZALU;Jump_flag <= 1'b0; end // CJNE    Rn,#
+	{8'b11011xxx,2'b00,S4,1'b1} : begin PC_en <= 1'b0; PC_add_rel <= ~ZALU;Jump_flag <= 1'b0; end // DJNZ    Rn
+	{8'b11011xxx,2'b00,S5,1'b0} : begin PC_en <= 1'b1; PC_add_rel <= ~ZALU;Jump_flag <= 1'b0; end // DJNZ    Rn
+	{8'b11010101,2'b01,S4,1'b1} : begin PC_en <= 1'b0; PC_add_rel <= 1'b0; Jump_flag <= 1'b0; end // DJNZ    dir
+	{8'b11010101,2'b01,S5,1'b0} : begin PC_en <= 1'b1; PC_add_rel <= 1'b0; Jump_flag <= 1'b0; end // DJNZ    dir
+	{8'b11010101,2'b00,S4,1'b1} : begin PC_en <= 1'b0; PC_add_rel <= ~ZALU;Jump_flag <= 1'b0; end // DJNZ    dir
+	{8'b11010101,2'b00,S5,1'b0} : begin PC_en <= 1'b1; PC_add_rel <= ~ZALU;Jump_flag <= 1'b0; end // DJNZ    dir
+	
 	default : begin PC_en <= 1'b0; PC_add_rel <= 1'b0; Jump_flag <= 1'b0; end
 	endcase
   
@@ -154,6 +174,15 @@ module AddrU(IR,direct,
 	{8'b1001011x,2'b00,S2} : begin Bb <= 1'b1; position <= 8'h00; Rn_ext <= 1'b0; Ri_at <= 1'b1; end  // SUBB A,@Ri
 	{8'b1001011x,2'b00,S3} : begin Bb <= 1'b1; position <= 8'h00; Rn_ext <= 1'b0; Ri_at <= 1'b1; end  // SUBB A,@Ri
 	{8'b1001011x,2'b00,S4} : begin Bb <= 1'b1; position <= 8'h00; Rn_ext <= 1'b0; Ri_at <= 1'b1; end  // SUBB A,@Ri
+	{8'b1011011x,2'b00,S3} : begin Bb <= 1'b1; position <= 8'h00; Rn_ext <= 1'b0; Ri_at <= 1'b1; end  // CJNE @Ri,#
+	{8'b1011011x,2'b00,S4} : begin Bb <= 1'b1; position <= 8'h00; Rn_ext <= 1'b0; Ri_at <= 1'b1; end  // CJNE @Ri,#
+	{8'b10111xxx,2'b00,S3} : begin Bb <= 1'b1; position <= 8'h00; Rn_ext <= 1'b1; Ri_at <= 1'b0; end  // CJNE Rn,#
+	{8'b10111xxx,2'b00,S4} : begin Bb <= 1'b1; position <= 8'h00; Rn_ext <= 1'b1; Ri_at <= 1'b0; end  // CJNE Rn,#
+	{8'b11011xxx,2'b01,S3} : begin Bb <= 1'b1; position <= 8'h00; Rn_ext <= 1'b1; Ri_at <= 1'b0; end  // DJNZ Rn
+	{8'b11011xxx,2'b01,S4} : begin Bb <= 1'b1; position <= 8'h00; Rn_ext <= 1'b1; Ri_at <= 1'b0; end  // DJNZ Rn
+	{8'b11011xxx,2'b00,S3} : begin Bb <= 1'b1; position <= 8'h00; Rn_ext <= 1'b1; Ri_at <= 1'b0; end  // DJNZ Rn
+	{8'b11011xxx,2'b00,S4} : begin Bb <= 1'b1; position <= 8'h00; Rn_ext <= 1'b1; Ri_at <= 1'b0; end  // DJNZ Rn
+	{8'b11011xxx,2'b00,S5} : begin Bb <= 1'b1; position <= 8'h00; Rn_ext <= 1'b1; Ri_at <= 1'b0; end  // DJNZ Rn
 	default : begin Bb <= 1'b1; position <= 8'h00; Rn_ext <= 1'b0; Ri_at <= 1'b0; end
 	endcase  
   
@@ -249,7 +278,27 @@ module AddrU(IR,direct,
 	{8'b010X0101,2'b00,S3,8'bxxxxxxxx} : Addr_src <= {CODE_src,SFR_src,{SFR_ennum{1'b0}}}; // ORL/ANL           A,dir -> load dir
 	{8'b01100101,2'b00,S3,8'bxxxxxxxx} : Addr_src <= {CODE_src,SFR_src,{SFR_ennum{1'b0}}}; // XRL               A,dir -> load dir
 	{8'b10010101,2'b00,S3,8'bxxxxxxxx} : Addr_src <= {CODE_src,SFR_src,{SFR_ennum{1'b0}}}; // SUBB              A,dir -> load dir
-	                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  
+	
+    {8'b10000000,2'b01,S3,8'bxxxxxxxx} : Addr_src <= {CODE_src,SFR_src,{SFR_ennum{1'b0}}}; // SJMP
+    {8'b01110000,2'b01,S3,8'bxxxxxxxx} : Addr_src <= {CODE_src,SFR_src,{SFR_ennum{1'b0}}}; // JNZ
+    {8'b01100000,2'b01,S3,8'bxxxxxxxx} : Addr_src <= {CODE_src,SFR_src,{SFR_ennum{1'b0}}}; // JZ
+    {8'b10111xxx,2'b01,S3,8'bxxxxxxxx} : Addr_src <= {CODE_src,SFR_src,{SFR_ennum{1'b0}}}; // CJNE Rn,#
+    {8'b101101XX,2'b01,S3,8'bxxxxxxxx} : Addr_src <= {CODE_src,SFR_src,{SFR_ennum{1'b0}}}; // CJNE A,#/A,dir/@Ri,#
+    {8'b10111xxx,2'b01,S4,8'bxxxxxxxx} : Addr_src <= {DATA_src,SFR_src,{SFR_ennum{1'b0}}}; // CJNE Rn,#
+    {8'b1011011x,2'b01,S4,8'bxxxxxxxx} : Addr_src <= {DATA_src,SFR_src,{SFR_ennum{1'b0}}}; // CJNE @Ri,#
+    {8'b10110101,2'b01,S4,8'b0xxxxxxx} : Addr_src <= {DATA_src,SFR_src,{SFR_ennum{1'b0}}}; // CJNE A,dir
+	{8'b10111xxx,2'b00,S3,8'bxxxxxxxx} : Addr_src <= {CODE_src,SFR_src,{SFR_ennum{1'b0}}}; // CJNE Rn,#
+    {8'b101101XX,2'b00,S3,8'bxxxxxxxx} : Addr_src <= {CODE_src,SFR_src,{SFR_ennum{1'b0}}}; // CJNE A,#/A,dir/@Ri,#    
+	{8'b10111xxx,2'b00,S4,8'bxxxxxxxx} : Addr_src <= {DATA_src,ALU_src,{SFR_ennum{1'b0}}}; // CJNE Rn,#
+    {8'b101101XX,2'b00,S4,8'bxxxxxxxx} : Addr_src <= {DATA_src,ALU_src,{SFR_ennum{1'b0}}}; // CJNE A,#/A,dir/@Ri,#    
+	{8'b11010101,2'b01,S3,8'bxxxxxxxx} : Addr_src <= {CODE_src,SFR_src,{SFR_ennum{1'b0}}}; // DJNZ dir
+    {8'b11011xxx,2'b01,S4,8'bxxxxxxxx} : Addr_src <= {DATA_src,ALU_src,{SFR_ennum{1'b0}}}; // DJNZ Rn
+    {8'b11010101,2'b01,S4,8'b0xxxxxxx} : Addr_src <= {DATA_src,ALU_src,{SFR_ennum{1'b0}}}; // DJNZ dir
+    {8'b11011xxx,2'b00,S3,8'bxxxxxxxx} : Addr_src <= {CODE_src,SFR_src,{SFR_ennum{1'b0}}}; // DJNZ Rn
+    {8'b11010101,2'b00,S3,8'bxxxxxxxx} : Addr_src <= {CODE_src,SFR_src,{SFR_ennum{1'b0}}}; // DJNZ dir    
+	{8'b11011xxx,2'b00,S5,8'bxxxxxxxx} : Addr_src <= {SSFR_src,ALU_src,{SFR_ennum{1'b0}}}; // DJNZ Rn
+    {8'b11010101,2'b00,S5,8'bxxxxxxxx} : Addr_src <= {SSFR_src,ALU_src,{SFR_ennum{1'b0}}}; // DJNZ dir    
+	
 	/******************************* !direct of SFR patches! **********************************/
 	{8'b11100101,2'b00,S4,8'b11110000} : Addr_src <= {DATA_src,SFR_src,B_src};             // MOV A,dir -> to A
 	{8'b11100101,2'b00,S4,8'b11100000} : Addr_src <= {DATA_src,SFR_src,A_src};             // MOV A,dir -> to A
@@ -305,6 +354,18 @@ module AddrU(IR,direct,
 	{8'b10010101,2'b00,S4,8'b10100000} : Addr_src <= {SSFR_src,SFR_src,P2_src};            // SUBB             A,dir -> Value2
 	{8'b10010101,2'b00,S4,8'b10010000} : Addr_src <= {SSFR_src,SFR_src,P1_src};            // SUBB             A,dir -> Value2
 	{8'b10010101,2'b00,S4,8'b10000000} : Addr_src <= {SSFR_src,SFR_src,P0_src};            // SUBB             A,dir -> Value2
+    {8'b10110101,2'b01,S4,8'b11110000} : Addr_src <= {SSFR_src,ALU_src,B_src};             // CJNE A,dir
+    {8'b10110101,2'b01,S4,8'b11100000} : Addr_src <= {SSFR_src,ALU_src,A_src};             // CJNE A,dir
+    {8'b10110101,2'b01,S4,8'b10110000} : Addr_src <= {SSFR_src,ALU_src,P3_src};            // CJNE A,dir
+    {8'b10110101,2'b01,S4,8'b10100000} : Addr_src <= {SSFR_src,ALU_src,P2_src};            // CJNE A,dir
+    {8'b10110101,2'b01,S4,8'b10010000} : Addr_src <= {SSFR_src,ALU_src,P1_src};            // CJNE A,dir
+    {8'b10110101,2'b01,S4,8'b10000000} : Addr_src <= {SSFR_src,ALU_src,P0_src};            // CJNE A,dir
+    {8'b11010101,2'b01,S4,8'b11110000} : Addr_src <= {SSFR_src,ALU_src,B_src};             // DJNZ dir
+    {8'b11010101,2'b01,S4,8'b11100000} : Addr_src <= {SSFR_src,ALU_src,A_src};             // DJNZ dir
+    {8'b11010101,2'b01,S4,8'b10110000} : Addr_src <= {SSFR_src,ALU_src,P3_src};            // DJNZ dir
+    {8'b11010101,2'b01,S4,8'b10100000} : Addr_src <= {SSFR_src,ALU_src,P2_src};            // DJNZ dir
+    {8'b11010101,2'b01,S4,8'b10010000} : Addr_src <= {SSFR_src,ALU_src,P1_src};            // DJNZ dir
+    {8'b11010101,2'b01,S4,8'b10000000} : Addr_src <= {SSFR_src,ALU_src,P0_src};            // DJNZ dir
 
 	default : Addr_src <= {SSFR_src,SFR_src,{SFR_ennum{1'b0}}};
 	endcase
@@ -386,6 +447,23 @@ module AddrU(IR,direct,
 	{8'b010X0101,2'b00,S3,8'bxxxxxxxx,1'b1} : Addr_dst <= {SSFR_dst,direct_dst,{SFR_ennum{1'b0}}};        // ORL/ANL        A,dir       -> load direct
 	{8'b01100101,2'b00,S3,8'bxxxxxxxx,1'b1} : Addr_dst <= {SSFR_dst,direct_dst,{SFR_ennum{1'b0}}};        // XRL            A,dir       -> load direct
 	{8'b10010101,2'b00,S3,8'bxxxxxxxx,1'b1} : Addr_dst <= {SSFR_dst,direct_dst,{SFR_ennum{1'b0}}};        // SUBB           A,dir       -> load direct
+
+    {8'b10000000,2'b01,S3,8'bxxxxxxxx,1'b1} : Addr_dst <= {SSFR_dst,rel_dst,{SFR_ennum{1'b0}}};           // SJMP
+    {8'b01110000,2'b01,S3,8'bxxxxxxxx,1'b1} : Addr_dst <= {SSFR_dst,rel_dst,{SFR_ennum{1'b0}}};           // JNZ
+    {8'b01100000,2'b01,S3,8'bxxxxxxxx,1'b1} : Addr_dst <= {SSFR_dst,rel_dst,{SFR_ennum{1'b0}}};           // JZ
+    {8'b10110101,2'b01,S3,8'bxxxxxxxx,1'b1} : Addr_dst <= {SSFR_dst,direct_dst,{SFR_ennum{1'b0}}};        // CJNE A,dir
+    {8'b10110100,2'b01,S3,8'bxxxxxxxx,1'b1} : Addr_dst <= {SSFR_dst,V2t_dst,{SFR_ennum{1'b0}}};           // CJNE A,#
+    {8'b1011011x,2'b01,S3,8'bxxxxxxxx,1'b1} : Addr_dst <= {SSFR_dst,V2t_dst,{SFR_ennum{1'b0}}};           // CJNE @Ri,#
+    {8'b10111xxx,2'b01,S3,8'bxxxxxxxx,1'b1} : Addr_dst <= {SSFR_dst,V2t_dst,{SFR_ennum{1'b0}}};           // CJNE Rn,#
+    {8'b1011011x,2'b01,S4,8'bxxxxxxxx,1'b1} : Addr_dst <= {SSFR_dst,V1t_dst,{SFR_ennum{1'b0}}};           // CJNE @Ri,#
+    {8'b10111xxx,2'b01,S4,8'bxxxxxxxx,1'b1} : Addr_dst <= {SSFR_dst,V1t_dst,{SFR_ennum{1'b0}}};           // CJNE Rn,#
+    {8'b101101XX,2'b00,S3,8'bxxxxxxxx,1'b1} : Addr_dst <= {SSFR_dst,rel_dst,{SFR_ennum{1'b0}}};           // CJNE A,#/A,dir/@Ri,#
+    {8'b10111xxx,2'b00,S3,8'bxxxxxxxx,1'b1} : Addr_dst <= {SSFR_dst,rel_dst,{SFR_ennum{1'b0}}};           // CJNE Rn,#
+	{8'b11010101,2'b01,S3,8'bxxxxxxxx,1'b1} : Addr_dst <= {SSFR_dst,direct_dst,{SFR_ennum{1'b0}}};        // DJNZ dir
+    {8'b11010101,2'b00,S3,8'bxxxxxxxx,1'b1} : Addr_dst <= {SSFR_dst,rel_dst,{SFR_ennum{1'b0}}};           // DJNZ dir
+    {8'b11011xxx,2'b00,S3,8'bxxxxxxxx,1'b1} : Addr_dst <= {SSFR_dst,rel_dst,{SFR_ennum{1'b0}}};           // DJNZ Rn
+	{8'b11010101,2'b00,S5,8'b0xxxxxxx,1'b1} : Addr_dst <= {DATA_dst,SFR_dst,{SFR_ennum{1'b0}}};           // DJNZ dir
+    {8'b11011xxx,2'b00,S5,8'bxxxxxxxx,1'b1} : Addr_dst <= {DATA_dst,SFR_dst,{SFR_ennum{1'b0}}};           // DJNZ Rn
 	
 	/******************************* !direct of SFR patches! **********************************/
 	{8'b11110101,2'b00,S4,8'b11110000,1'b1} : Addr_dst <= {SSFR_dst,SFR_dst,B_dst};                       // MOV dir,A -> to dir
@@ -424,6 +502,12 @@ module AddrU(IR,direct,
 	{8'b000X0101,2'b00,S5,8'b10100000,1'b1} : Addr_dst <= {SSFR_dst,SFR_dst,P2_dst};                      // INC/DEC        dir         -> to dir
 	{8'b000X0101,2'b00,S5,8'b10010000,1'b1} : Addr_dst <= {SSFR_dst,SFR_dst,P1_dst};                      // INC/DEC        dir         -> to dir
 	{8'b000X0101,2'b00,S5,8'b10000000,1'b1} : Addr_dst <= {SSFR_dst,SFR_dst,P0_dst};                      // INC/DEC        dir         -> to dir
+	{8'b11010101,2'b00,S5,8'b11110000,1'b1} : Addr_dst <= {SSFR_dst,SFR_dst,B_dst};                       // DJNZ dir
+	{8'b11010101,2'b00,S5,8'b11100000,1'b1} : Addr_dst <= {SSFR_dst,SFR_dst,A_dst};                       // DJNZ dir
+	{8'b11010101,2'b00,S5,8'b10110000,1'b1} : Addr_dst <= {SSFR_dst,SFR_dst,P3_dst};                      // DJNZ dir
+	{8'b11010101,2'b00,S5,8'b10100000,1'b1} : Addr_dst <= {SSFR_dst,SFR_dst,P2_dst};                      // DJNZ dir
+	{8'b11010101,2'b00,S5,8'b10010000,1'b1} : Addr_dst <= {SSFR_dst,SFR_dst,P1_dst};                      // DJNZ dir
+	{8'b11010101,2'b00,S5,8'b10000000,1'b1} : Addr_dst <= {SSFR_dst,SFR_dst,P0_dst};                      // DJNZ dir
 	default : Addr_dst <= {SSFR_dst,SFR_dst,{SFR_ennum{1'b0}}};
 	endcase
 

@@ -1,4 +1,4 @@
-module CU(clk,reset,IR,direct,
+module CU(clk,reset,IR,direct,ZA,ZALU,
           // output control signal
 		  Phase,ALE,PSEN,RD,WR,
 		  PC_CON,CODE_CS,IR_en,
@@ -17,6 +17,7 @@ module CU(clk,reset,IR,direct,
   input clk,reset;
   input [7:0] IR;
   input [7:0] direct;
+  input ZA,ZALU;
   
   output reg  Phase;                 // Phase
   output reg  ALE;                   // Address Latch Enable, High pulse effective
@@ -128,7 +129,7 @@ module CU(clk,reset,IR,direct,
 /************************************** ADDRS *****************************************/  
   // Address Unit
   wire XDATA_src,XDATA_dst,DATA_src,DATA_dst,CODE_src,ALU_oe;
-  AddrU AddressUnit(.IR(IR[7:0]),.direct(direct[7:0]),
+  AddrU AddressUnit(.IR(IR[7:0]),.direct(direct[7:0]),.ZA(ZA),.ZALU(ZALU),
                     .cycles(cycles[1:0]),.S(S[2:0]),.Phase(Phase),
 					// output
 					.PC_en(PC_CON[2]),.PC_add_rel(PC_CON[0]),.Jump_flag(PC_CON[1]),
@@ -157,6 +158,8 @@ module CU(clk,reset,IR,direct,
 	{2'b00,8'b000X1xxx} : begin  ALU_CON[6] <= ALU_oe&(S==S5); ALU_CON[0] <= ALU_oe&(S==S4);   end // INC/DEC Rn
 	{2'b00,8'b000X011x} : begin  ALU_CON[6] <= ALU_oe&(S==S5); ALU_CON[0] <= ALU_oe&(S==S4);   end // INC/DEC @Ri
 	{2'b00,8'b000X0101} : begin  ALU_CON[6] <= ALU_oe&(S==S5); ALU_CON[0] <= ALU_oe&(S==S4);   end // INC/DEC dir
+	{2'b00,8'b11011xxx},
+	{2'b00,8'b11010101} : begin  ALU_CON[6] <= ALU_oe&(S==S5); ALU_CON[0] <= ALU_oe&(S==S4);   end // DJNZ Rn/dir;
 	
 	{2'b00,8'b010X0011} : begin  ALU_CON[6] <= ALU_oe; ALU_CON[0] <= 1'b0;                     end // ORL/ANL dir,#
 	{2'b00,8'b01100011} : begin  ALU_CON[6] <= ALU_oe; ALU_CON[0] <= 1'b0;                     end // XRL     dir,#
@@ -207,6 +210,10 @@ module CU(clk,reset,IR,direct,
 	8'b00110011 : ALU_CON[4:1] <= alu_rlc;  // RLC  A
 	8'b00000011 : ALU_CON[4:1] <= alu_rr;   // RR   A
 	8'b00010011 : ALU_CON[4:1] <= alu_rrc;  // RR   A
+	8'b10111xxx,
+	8'b101101XX : ALU_CON[4:1] <= alu_subb; // CJNE
+	8'b11011xxx,
+	8'b11010101 : ALU_CON[4:1] <= alu_dec;  // DJNZ
 	default : ALU_CON[4:1] <= 4'b0111;
 	endcase
   // A_used
@@ -215,6 +222,10 @@ module CU(clk,reset,IR,direct,
 	8'b000X0101 : ALU_CON[5] <= 1'b0; // INC/DEC  dir
 	8'b000X011x : ALU_CON[5] <= 1'b0; // INC/DEC  @Ri
 	8'b000X1xxx : ALU_CON[5] <= 1'b0; // INC/DEC  Rn
+	8'b10111xxx : ALU_CON[5] <= 1'b0; // CJNE     Rn,#
+	8'b1011011x : ALU_CON[5] <= 1'b0; // CJNE     @Rn,#
+	8'b11011xxx : ALU_CON[5] <= 1'b0; // DJNZ     Rn
+	8'b11010101 : ALU_CON[5] <= 1'b0; // DJNZ     dir
 	default : ALU_CON[5] <= 1'b1;
 	endcase
   // A_bypass
@@ -248,6 +259,13 @@ module CU(clk,reset,IR,direct,
 	8'b01110101 : cycles_decoded <= 2'b01; // MOV dir,#
 	8'b1010011x : cycles_decoded <= 2'b01; // MOV @Ri,dir
     8'b1110001x : cycles_decoded <= 2'b01; // MOVX A,@Ri
+    8'b10000000 : cycles_decoded <= 2'b01; // SJMP
+    8'b01110000 : cycles_decoded <= 2'b01; // JNZ
+    8'b01100000 : cycles_decoded <= 2'b01; // JZ
+    8'b101101XX : cycles_decoded <= 2'b01; // CJNE A,#/A,dir/@Ri,#
+    8'b10111xxx : cycles_decoded <= 2'b01; // CJNE Rn,#
+    8'b11010101 : cycles_decoded <= 2'b01; // DJNZ dir
+    8'b11011xxx : cycles_decoded <= 2'b01; // DJNZ Rn
 	default : cycles_decoded <= 2'b00;
 	endcase
   

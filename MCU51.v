@@ -137,8 +137,13 @@ module MCU51(XTAL1,XTAL2,RST,EA,ALE,PSEN,P0,P1,P2,P3);
   always@(negedge clk)    A2ALU <= A[7:0];
   // to hold the results of ALU discarded by A
   wire R_ALU_oe;  // recall the result of ALU
+  wire [7:0] ALU_reged;
   SFR R_ALU(.clk(clk),.reset(RST),.en(ALU_oe),.oe(R_ALU_oe),.Bb(Bb),.position(position[7:0]),
-            .din(Result[7:0]),.bin(1'bz),.dout(BUS[7:0]),.bout(BUS[8]),.cout());			
+            .din(Result[7:0]),.bin(1'bz),.dout(BUS[7:0]),.bout(BUS[8]),.cout(ALU_reged[7:0]));			
+  
+  wire  ZA,ZALU;
+  assign ZA   = ~(|A[7:0]);
+  assign ZALU = ~(|ALU_reged[7:0]);
   
   /*** Data RAM internal ***/
   wire DATA_CS,DATA_RW;
@@ -191,7 +196,7 @@ module MCU51(XTAL1,XTAL2,RST,EA,ALE,PSEN,P0,P1,P2,P3);
 
   /*** Control Unit ***/
   wire PSEN_EA;
-  CU ControlUnit(.clk(clk),.reset(RST),.IR(IR[7:0]),.direct(direct[7:0]),
+  CU ControlUnit(.clk(clk),.reset(RST),.IR(IR[7:0]),.direct(direct[7:0]),.ZA(ZA),.ZALU(ZALU),
           // output control signal
 		  .Phase(Phase),.ALE(ALE),.PSEN(PSEN_EA),.RD(),.WR(),
 		  .PC_CON({PC_en,Jump_flag,PC_add_rel}),
