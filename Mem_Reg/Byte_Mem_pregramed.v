@@ -11,28 +11,61 @@ module Byte_Mem_pregramed(clk,CS,addr,dout);
     
   always@(negedge clk)
     casex(addr[7:0])
-	  //802E7401F5907FFA7EFA7D08DDFEDEFADFF62380EF
-	  8'h00   : data <= 8'h80; // SJMP 
-	  8'h01   : data <= 8'h2E; //          MAIN
-	  8'h30   : data <= 8'h74; // MOV A, 
-	  8'h31   : data <= 8'h01; //          #01H 
-	  8'h32   : data <= 8'hF5; // MOV     ,A
-	  8'h33   : data <= 8'h90; //     P1
-	  8'h34   : data <= 8'h7F; // MOV R7,
-	  8'h35   : data <= 8'hFA; //         #FAH
-	  8'h36   : data <= 8'h7E; // MOV R6,
-	  8'h37   : data <= 8'h8A; //         #8AH
-	  8'h38   : data <= 8'h7D; // MOV R5,
-	  8'h39   : data <= 8'h08; //         #08H
-      8'h3a   : data <= 8'hDD; // DJNZ R5,
-	  8'h3b   : data <= 8'hFE; //         $
-	  8'h3c   : data <= 8'hDE; // DJNZ R6,
-	  8'h3d   : data <= 8'hFA; //         LP1
-	  8'h3e   : data <= 8'hDF; // DJNZ R7,
-	  8'h3f   : data <= 8'hF6; //         LP2
-	  8'h40   : data <= 8'h23; // RL   A
-	  8'h41   : data <= 8'h80; // SJMP
-	  8'h42   : data <= 8'hEF; //        ,LP3
+ 	  8'h00 : data <= 8'h75;
+ 	  8'h01 : data <= 8'h08;
+ 	  8'h02 : data <= 8'h3F;
+ 	  8'h03 : data <= 8'h75;
+ 	  8'h04 : data <= 8'h09;
+ 	  8'h05 : data <= 8'h06;
+ 	  8'h06 : data <= 8'h75;
+ 	  8'h07 : data <= 8'h0A;
+ 	  8'h08 : data <= 8'h5B;
+ 	  8'h09 : data <= 8'h75;
+ 	  8'h0A : data <= 8'h0B;
+ 	  8'h0B : data <= 8'h4F;
+ 	  8'h0C : data <= 8'h75;
+ 	  8'h0D : data <= 8'h0C;
+ 	  8'h0E : data <= 8'h66;
+ 	  8'h0F : data <= 8'h75;
+ 	  8'h10 : data <= 8'h0D;
+ 	  8'h11 : data <= 8'h6D;
+ 	  8'h12 : data <= 8'h75;
+ 	  8'h13 : data <= 8'h0E;
+ 	  8'h14 : data <= 8'h7D;
+ 	  8'h15 : data <= 8'h75;
+ 	  8'h16 : data <= 8'h0F;
+ 	  8'h17 : data <= 8'h07;
+ 	  8'h18 : data <= 8'h75;
+ 	  8'h19 : data <= 8'h10;
+ 	  8'h1A : data <= 8'h7F;
+ 	  8'h1B : data <= 8'h75;
+ 	  8'h1C : data <= 8'h11;
+ 	  8'h1D : data <= 8'h6F;
+ 	  8'h1E : data <= 8'h75;
+ 	  8'h1F : data <= 8'h12;
+ 	  8'h20 : data <= 8'h08;
+ 	  8'h21 : data <= 8'h85;
+ 	  8'h22 : data <= 8'hB0;
+ 	  8'h23 : data <= 8'h13;
+ 	  8'h24 : data <= 8'h85;
+ 	  8'h25 : data <= 8'hA0;
+ 	  8'h26 : data <= 8'h14;
+ 	  8'h27 : data <= 8'h85;
+ 	  8'h28 : data <= 8'hA0;
+ 	  8'h29 : data <= 8'h90;
+ 	  8'h2A : data <= 8'h7E;
+ 	  8'h2B : data <= 8'hFA;
+ 	  8'h2C : data <= 8'h7F;
+ 	  8'h2D : data <= 8'hFA;
+ 	  8'h2E : data <= 8'hDF;
+ 	  8'h2F : data <= 8'hFE;
+ 	  8'h30 : data <= 8'hDE;
+ 	  8'h31 : data <= 8'hFA;
+ 	  8'h32 : data <= 8'h85;
+ 	  8'h33 : data <= 8'hB0;
+ 	  8'h34 : data <= 8'h90;
+ 	  8'h35 : data <= 8'h80;
+ 	  8'h36 : data <= 8'hE0;
 	 default  : data <= 8'h00; // NOP
 	endcase
   always@(*)
@@ -152,3 +185,26 @@ endmodule
 	  8'h02   : data <= 8'hC4; // SWAP A 
 	  8'h03   : data <= 8'hE4; // CLR  A 
 	   */
+	 /*   //802E7401F5907FFA7EFA7D08DDFEDEFADFF62380EF
+	  8'h00   : data <= 8'h80; // SJMP 
+	  8'h01   : data <= 8'h2E; //          MAIN
+	  8'h30   : data <= 8'h74; // MOV A, 
+	  8'h31   : data <= 8'h01; //          #01H 
+	  8'h32   : data <= 8'hF5; // MOV     ,A
+	  8'h33   : data <= 8'h90; //     P1
+	  8'h34   : data <= 8'h7F; // MOV R7,
+	  8'h35   : data <= 8'hFA; //         #FAH
+	  8'h36   : data <= 8'h7E; // MOV R6,
+	  8'h37   : data <= 8'h8A; //         #8AH
+	  8'h38   : data <= 8'h7D; // MOV R5,
+	  8'h39   : data <= 8'h08; //         #08H
+      8'h3a   : data <= 8'hDD; // DJNZ R5,
+	  8'h3b   : data <= 8'hFE; //         $
+	  8'h3c   : data <= 8'hDE; // DJNZ R6,
+	  8'h3d   : data <= 8'hFA; //         LP1
+	  8'h3e   : data <= 8'hDF; // DJNZ R7,
+	  8'h3f   : data <= 8'hF6; //         LP2
+	  8'h40   : data <= 8'h23; // RL   A
+	  8'h41   : data <= 8'h80; // SJMP
+	  8'h42   : data <= 8'hEF; //        ,LP3
+	  */

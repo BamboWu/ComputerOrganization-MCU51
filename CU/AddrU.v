@@ -3,8 +3,8 @@ module AddrU(IR,direct,ZA,ZALU,
 			 // output
 			 PC_en,PC_add_rel,Jump_flag,
 			 Bb,position,Rn_ext,Ri_at,
-			 Addr_src,Addr_dst,
-			 PortsIO);
+			 Addr_src,Addr_dst/*,
+			 PortsIO*/);
   
 /************************************** PORTS *****************************************/		  
   input [7:0] IR;
@@ -24,7 +24,7 @@ module AddrU(IR,direct,ZA,ZALU,
   output reg Rn_ext;         // Rn address extension
   output reg Ri_at;          // Ri indirect addressing 
   
-  output reg [3:0] PortsIO;  // Ports input or output, H output, L input
+  //output reg [3:0] PortsIO;  // Ports input or output, H output, L input
   
   output reg [14:0] Addr_src;
   // {CODE_src,DATA_src,XDATA_src} Memory
@@ -517,12 +517,12 @@ module AddrU(IR,direct,ZA,ZALU,
 	endcase
 
   // control Ports IO
-  always@(IR[7:0] or cycles[1:0] or S[2:0])
+/*   always@(IR[7:0] or cycles[1:0] or S[2:0])
     casex({IR[7:0],cycles[1:0],S[2:0]})
-	/******************************* keep output first **********************************/
-	default :  PortsIO[3:0] <= 4'hf;
-	endcase
 	
+	default :  PortsIO[3:0] <= 4'hF;
+	endcase
+ */	
 endmodule
 /*   always@(state[2:0])
     discard <= (ChipSel==NONE_CS)&(Addr_src=={SFR_src,{SFR_ennum{1'b0}}});

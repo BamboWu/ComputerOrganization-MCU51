@@ -5,7 +5,8 @@ module MCU51(XTAL1,XTAL2,RST,EA,ALE,PSEN,P0,P1,P2,P3);
   input EA;          // External Access Enable,  H internal ROM, L external ROM
   output ALE;        // Address Latch Enable,  High pulse when address effective
   output PSEN;       // Program Strobe Enable,  Low pulse to select external ROM
-  inout [7:0] P0,P1,P2,P3;  // four 8-pins I/O port
+  output [7:0] P0,P1;
+  input  [7:0] P2,P3;  // four 8-pins I/O port
   
   // clock ports
   wire clk;          // 12MHz clock MCU51 used
@@ -19,38 +20,38 @@ module MCU51(XTAL1,XTAL2,RST,EA,ALE,PSEN,P0,P1,P2,P3);
   wire [8:0] BUS;          // Bus for addresses,datas
   
   /*** four 8-pins I/O ports: P0~P3 ***/
-  wire P0_io;                     // input/output enable of P0; H output, L input
-  wire [7:0] P0_reg;              // 
-  assign P0 = P0_io ? P0_reg[7:0] : 8'hzz;
-  buffer buf_P0(.in(P0[7:0]),.en(~P0_io),.out(BUS[7:0]));
+  //wire P0_io;                     // input/output enable of P0; H output, L input
+  wire P0_oe;                     // output enable  from P0 to BUS;
+  //wire [7:0] P0_reg;              // 
+  //assign P0 = P0_oe ? 8'hzz : P0_reg[7:0];
+  //buffer buf_P0(.in(P0[7:0]&P0_reg[7:0]),.en(P0_oe),.out(BUS[7:0]));
   wire P0_en;                     // enter a new value to SFR_P0
-  wire P0_oe;                     // output enable of SFR_P0;
-  SFR SFR_P0(.clk(clk),.reset(RST),.en(P0_en),.oe(P0_oe),.Bb(Bb),.position(position[7:0]),
-         .din(BUS[7:0]),.bin(BUS[8]),.dout(BUS[7:0]),.bout(BUS[8]),.cout(P0_reg[7:0]));
-  wire P1_io;                     // input/output enable of P1; H output, L input
-  wire [7:0] P1_reg;              // 
-  assign P1 = P1_io ? P1_reg[7:0] : 8'hzz;
-  buffer buf_P1(.in(P1[7:0]),.en(~P1_io),.out(BUS[7:0]));
+  SFR SFR_P0(.clk(clk),.reset(RST),.en(P0_en),.oe(1'b0),.Bb(Bb),.position(position[7:0]),
+         .din(BUS[7:0]),.bin(BUS[8]),.dout(BUS[7:0]),.bout(BUS[8]),.cout(P0[7:0]));
+  //wire P1_io;                     // input/output enable of P1; H output, L input
+  wire P1_oe;                     // output enable from P1 to BUS;
+  //wire [7:0] P1_reg;              // 
+  //assign P1 = P1_oe ?  8'hzz : P1_reg[7:0];
+  //buffer buf_P1(.in(P1[7:0]&P1_reg[7:0]),.en(P1_oe),.out(BUS[7:0]));
   wire P1_en;                     // enter a new value to SFR_P1
-  wire P1_oe;                     // output enable of SFR_P1;
-  SFR SFR_P1(.clk(clk),.reset(RST),.en(P1_en),.oe(P1_oe),.Bb(Bb),.position(position[7:0]),
-         .din(BUS[7:0]),.bin(BUS[8]),.dout(BUS[7:0]),.bout(BUS[8]),.cout(P1_reg[7:0]));
-  wire P2_io;                     // input/output enable of P2; H output, L input
-  wire [7:0] P2_reg;              // 
-  assign P2 = P2_io ? P2_reg[7:0] : 8'hzz;
-  buffer buf_P2(.in(P2[7:0]),.en(~P2_io),.out(BUS[7:0]));
+  SFR SFR_P1(.clk(clk),.reset(RST),.en(P1_en),.oe(1'b0),.Bb(Bb),.position(position[7:0]),
+         .din(BUS[7:0]),.bin(BUS[8]),.dout(BUS[7:0]),.bout(BUS[8]),.cout(P1[7:0]));
+  //wire P2_io;                     // input/output enable of P2; H output, L input
+  wire P2_oe;                     // output enable from P2 to BUS;
+  //wire [7:0] P2_reg;              // 
+  //assign P2 = P2_oe ? 8'hzz : P2_reg[7:0];
+  buffer buf_P2(.in(P2[7:0]),.en(P2_oe),.out(BUS[7:0]));
   wire P2_en;                     // enter a new value to SFR_P2
-  wire P2_oe;                     // output enable of SFR_P2;
-  SFR SFR_P2(.clk(clk),.reset(RST),.en(P2_en),.oe(P2_oe),.Bb(Bb),.position(position[7:0]),
-         .din(BUS[7:0]),.bin(BUS[8]),.dout(BUS[7:0]),.bout(BUS[8]),.cout(P2_reg[7:0]));
-  wire P3_io;                     // input/output enable of P3; H output, L input
-  wire [7:0] P3_reg;              // 
-  assign P3 = P3_io ? P3_reg[7:0] : 8'hzz;
-  buffer buf_P3(.in(P3[7:0]),.en(~P3_io),.out(BUS[7:0]));
+  //SFR SFR_P2(.clk(clk),.reset(RST),.en(P2_en),.oe(P2_oe),.Bb(Bb),.position(position[7:0]),
+  //       .din(P2[7:0]),.bin(BUS[8]),.dout(BUS[7:0]),.bout(BUS[8]),.cout(P2_reg[7:0]));
+  //wire P3_io;                     // input/output enable of P3; H output, L input
+  wire P3_oe;                     // output enable from P3 to BUS;
+  //wire [7:0] P3_reg;              // 
+  //assign P3 = P3_oe ? 8'hzz : P3_reg[7:0];
+  buffer buf_P3(.in(P3[7:0]),.en(P3_oe),.out(BUS[7:0]));
   wire P3_en;                     // enter a new value to SFR_P3
-  wire P3_oe;                     // output enable of SFR_P3;
-  SFR SFR_P3(.clk(clk),.reset(RST),.en(P3_en),.oe(P3_oe),.Bb(Bb),.position(position[7:0]),
-         .din(BUS[7:0]),.bin(BUS[8]),.dout(BUS[7:0]),.bout(BUS[8]),.cout(P3_reg[7:0]));
+  //SFR SFR_P3(.clk(clk),.reset(RST),.en(P3_en),.oe(1'b0),.Bb(Bb),.position(position[7:0]),
+  //       .din(BUS[7:0]),.bin(BUS[8]),.dout(BUS[7:0]),.bout(BUS[8]),.cout(P3_reg[7:0]));
   
   /*** Program Counter ***/
   wire PC_en;              // enter a new PC
@@ -219,10 +220,10 @@ module MCU51(XTAL1,XTAL2,RST,EA,ALE,PSEN,P0,P1,P2,P3);
 		  .A_CON({A_bypass,A_en,A_oe}),.B_CON({B_en,B_oe}),
 		  .PSW_CON({PSW_en,PSW_oe}),
 		  .CLR_oe(CLR_oe),.SWAP_oe(SWAP_oe),
-          .P0_CON({P0_io,P0_en,P0_oe}),
-          .P1_CON({P1_io,P1_en,P1_oe}),
-          .P2_CON({P2_io,P2_en,P2_oe}),
-          .P3_CON({P3_io,P3_en,P3_oe})
+          .P0_CON({/* P0_io, */P0_en,P0_oe}),
+          .P1_CON({/* P1_io, */P1_en,P1_oe}),
+          .P2_CON({/* P2_io, */P2_en,P2_oe}),
+          .P3_CON({/* P3_io, */P3_en,P3_oe})
 		  );
   assign PSEN = PSEN_EA|EA;
 endmodule
