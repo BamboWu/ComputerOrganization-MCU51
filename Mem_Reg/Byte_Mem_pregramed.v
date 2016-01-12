@@ -11,9 +11,9 @@ module Byte_Mem_pregramed(clk,CS,addr,dout);
     
   always@(negedge clk)
     casex(addr[7:0])
-      8'h00    : data <= 8'h02; // LJMP
-	  8'h01    : data <= 8'h00; //         #02
-	  8'h02    : data <= 8'hC2; //            C2H
+      8'h00    : data <= 8'h01; // AJMP
+	  8'h01    : data <= 8'hC2; //         #C2H
+	  8'h02    : data <= 8'hC0; //            C2H
 	  8'hC2    : data <= 8'h74; // MOV  A,
 	  8'hC3    : data <= 8'hFF; //         #0FFH
 	  8'hC4    : data <= 8'h04; // INC  A

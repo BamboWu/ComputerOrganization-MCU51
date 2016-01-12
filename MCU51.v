@@ -64,12 +64,16 @@ module MCU51(XTAL1,XTAL2,RST,EA,ALE,PSEN,P0,P1,P2,P3);
   wire Jump_flag;                  // H take jump, L no jump !!!including rel!!!
   wire [15:0] PC_Jump,PC_next;     // new PC for jump taken or untaken
   assign PC_in = Jump_flag?PC_Jump[15:0]:PC_next[15:0];
-  // Registers for PC_jump
+  // Registers for jmp
   wire jmpH_en,jmpL_en;
+  wire [15:0] jmp;
   SFR R_jmpH(.clk(clk),.reset(RST),.en(jmpH_en),.oe(1'b0),.Bb(1'b1),.position(8'h00),
-          .din(BUS[7:0]),.bin(1'b0),.dout(),.bout(),.cout(PC_Jump[15:8]));
+          .din(BUS[7:0]),.bin(1'b0),.dout(),.bout(),.cout(jmp[15:8]));
   SFR R_jmpL(.clk(clk),.reset(RST),.en(jmpL_en),.oe(1'b0),.Bb(1'b1),.position(8'h00),
-          .din(BUS[7:0]),.bin(1'b0),.dout(),.bout(),.cout(PC_Jump[7:0]));
+          .din(BUS[7:0]),.bin(1'b0),.dout(),.bout(),.cout(jmp[7:0]));
+  // mux for PC_jump
+  wire PC_AL_jmp;                  // control jump type,  H aboselutely jump, L long jump
+  assign PC_Jump = {PC_AL_jmp?{PC[15:11],IR[7:5]}:jmp[15:8],jmp[7:0]};
   // Register for rel. rel is different from addr11/addr16/direct/data for it take add
   wire rel_en;                     // enter a new rel
   wire [7:0] rel;                  // current rel out from R_rel
@@ -213,7 +217,7 @@ module MCU51(XTAL1,XTAL2,RST,EA,ALE,PSEN,P0,P1,P2,P3);
   CU ControlUnit(.clk(clk),.reset(RST),.IR(IR[7:0]),.direct(direct[7:0]),.ZA(ZA),.ZALU(ZALU),.Cy(Cy),
           // output control signal
 		  .Phase(Phase),.ALE(ALE),.PSEN(PSEN_EA),.RD(),.WR(),
-		  .PC_CON({PC_en,Jump_flag,PC_add_rel}),
+		  .PC_CON({PC_en,Jump_flag,PC_AL_jmp,PC_add_rel}),
 		  .CODE_CS(CODE_CS),.IR_en(IR_en),
 		  .Bb(Bb),.position(position[7:0]),
 		  .Rn_ext(Rn_ext),.Ri_at(Ri_at),

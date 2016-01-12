@@ -25,7 +25,7 @@ module CU(clk,reset,IR,direct,ZA,ZALU,Cy,
   output reg  PSEN;                  // Program Strobe Enable, Low pulse effective
   output reg  RD,WR;
   
-  output wire [2:0] PC_CON;          // {PC_en,Jump_flag,PC_add_rel};
+  output wire [3:0] PC_CON;          // {PC_en,Jump_flag,PC_AL_jmp,PC_add_rel};
   output reg  CODE_CS;               // CODE Chip Select, Low effective
   output wire IR_en;                 // enter a new Instruction to IR
 
@@ -135,7 +135,7 @@ module CU(clk,reset,IR,direct,ZA,ZALU,Cy,
   AddrU AddressUnit(.IR(IR[7:0]),.direct(direct[7:0]),.ZA(ZA),.ZALU(ZALU),.Cy(Cy),
                     .cycles(cycles[1:0]),.S(S[2:0]),.Phase(Phase),
 					// output
-					.PC_en(PC_CON[2]),.PC_add_rel(PC_CON[0]),.Jump_flag(PC_CON[1]),
+					.PC_en(PC_CON[3]),.PC_AL_jmp(PC_CON[1]),.PC_add_rel(PC_CON[0]),.Jump_flag(PC_CON[2]),
 					.Bb(Bb),.position(position[7:0]),
 					.Rn_ext(Rn_ext),.Ri_at(Ri_at),  // Rn address extension and Ri indirect addressing
 					.Addr_src({CODE_src,DATA_src,XDATA_src,
@@ -268,7 +268,8 @@ module CU(clk,reset,IR,direct,ZA,ZALU,Cy,
     8'b10111xxx : cycles_decoded <= 2'b01; // CJNE Rn,#
     8'b11010101 : cycles_decoded <= 2'b01; // DJNZ dir
     8'b11011xxx : cycles_decoded <= 2'b01; // DJNZ Rn
-    8'b00000010 : cycles_decoded <= 2'b01; // LJMP
+    8'b000X0010 : cycles_decoded <= 2'b01; // LJMP/LCALL
+    8'bXXXX0001 : cycles_decoded <= 2'b01; // AJMP/ACALL
 	default : cycles_decoded <= 2'b00;
 	endcase
   

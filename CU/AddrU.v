@@ -1,7 +1,7 @@
 module AddrU(IR,direct,ZA,ZALU,Cy,
              cycles,S,Phase,
 			 // output
-			 PC_en,PC_add_rel,Jump_flag,
+			 PC_en,PC_AL_jmp,PC_add_rel,Jump_flag,
 			 Bb,position,Rn_ext,Ri_at,
 			 Addr_src,Addr_dst/*,
 			 PortsIO*/);
@@ -16,7 +16,8 @@ module AddrU(IR,direct,ZA,ZALU,Cy,
   input       Phase;         // current Phase
   
   output reg PC_en;          // enter a new PC
-  output reg PC_add_rel;     // switch PC+1 to PC+rel
+  output reg PC_AL_jmp;      // switch LJMP to AJMP, H AJMP, L LJMP
+  output reg PC_add_rel;     // switch PC+1 to PC+rel+1
   output reg Jump_flag;      // switch PC_next to PC_Jump  
   
   output reg Bb;             // Byte/bit, H Byte, L bit
@@ -89,67 +90,69 @@ module AddrU(IR,direct,ZA,ZALU,Cy,
   always@(IR[7:0] or cycles[1:0] or S[2:0] or Phase or ZA or ZALU)
     casex({IR[7:0],cycles[1:0],S[2:0],Phase})
 	/******************************* PC add for next Inst. **********************************/
-	{8'bxxxxxxxx,2'b11,S1,1'b1} : begin PC_en <= 1'b1; PC_add_rel <= 1'b0; Jump_flag <= 1'b0; end
+	{8'bxxxxxxxx,2'b11,S1,1'b1} : begin PC_en <= 1'b1; PC_AL_jmp <= 1'b0; PC_add_rel <= 1'b0; Jump_flag <= 1'b0; end
 	
-	{8'b11100101,2'b00,S5,1'b0} : begin PC_en <= 1'b1; PC_add_rel <= 1'b0; Jump_flag <= 1'b0; end // MOV A,dir
-	{8'b01110100,2'b00,S5,1'b0} : begin PC_en <= 1'b1; PC_add_rel <= 1'b0; Jump_flag <= 1'b0; end // MOV A,#
+	{8'b11100101,2'b00,S5,1'b0} : begin PC_en <= 1'b1; PC_AL_jmp <= 1'b0;  PC_add_rel <= 1'b0; Jump_flag <= 1'b0; end // MOV A,dir
+	{8'b01110100,2'b00,S5,1'b0} : begin PC_en <= 1'b1; PC_AL_jmp <= 1'b0;  PC_add_rel <= 1'b0; Jump_flag <= 1'b0; end // MOV A,#
 	
 	/******************************* Two cycles Inst. **********************************/
-	{8'b10101xxx,2'b01,S5,1'b0} : begin PC_en <= 1'b1; PC_add_rel <= 1'b0; Jump_flag <= 1'b0; end // MOV Rn,dir
+	{8'b10101xxx,2'b01,S5,1'b0} : begin PC_en <= 1'b1; PC_AL_jmp <= 1'b0;  PC_add_rel <= 1'b0; Jump_flag <= 1'b0; end // MOV Rn,dir
 	
-	{8'b01111xxx,2'b00,S5,1'b0} : begin PC_en <= 1'b1; PC_add_rel <= 1'b0; Jump_flag <= 1'b0; end // MOV Rn,#
-	{8'b11110101,2'b00,S5,1'b0} : begin PC_en <= 1'b1; PC_add_rel <= 1'b0; Jump_flag <= 1'b0; end // MOV dir,A
-	{8'b10001xxx,2'b01,S5,1'b0} : begin PC_en <= 1'b1; PC_add_rel <= 1'b0; Jump_flag <= 1'b0; end // MOV dir,Rn
+	{8'b01111xxx,2'b00,S5,1'b0} : begin PC_en <= 1'b1; PC_AL_jmp <= 1'b0;  PC_add_rel <= 1'b0; Jump_flag <= 1'b0; end // MOV Rn,#
+	{8'b11110101,2'b00,S5,1'b0} : begin PC_en <= 1'b1; PC_AL_jmp <= 1'b0;  PC_add_rel <= 1'b0; Jump_flag <= 1'b0; end // MOV dir,A
+	{8'b10001xxx,2'b01,S5,1'b0} : begin PC_en <= 1'b1; PC_AL_jmp <= 1'b0;  PC_add_rel <= 1'b0; Jump_flag <= 1'b0; end // MOV dir,Rn
 	
 	/******************************* Two cycles Three bytes Inst. **********************************/
-	{8'b10000101,2'b01,S5,1'b0} : begin PC_en <= 1'b1; PC_add_rel <= 1'b0; Jump_flag <= 1'b0; end // MOV dir,dir
-	{8'b10000101,2'b00,S5,1'b0} : begin PC_en <= 1'b1; PC_add_rel <= 1'b0; Jump_flag <= 1'b0; end // MOV dir,dir
+	{8'b10000101,2'b01,S5,1'b0} : begin PC_en <= 1'b1; PC_AL_jmp <= 1'b0;  PC_add_rel <= 1'b0; Jump_flag <= 1'b0; end // MOV dir,dir
+	{8'b10000101,2'b00,S5,1'b0} : begin PC_en <= 1'b1; PC_AL_jmp <= 1'b0;  PC_add_rel <= 1'b0; Jump_flag <= 1'b0; end // MOV dir,dir
 	
-	{8'b1000011x,2'b01,S5,1'b0} : begin PC_en <= 1'b1; PC_add_rel <= 1'b0; Jump_flag <= 1'b0; end // MOV dir,@Ri
-	{8'b01110101,2'b01,S5,1'b0} : begin PC_en <= 1'b1; PC_add_rel <= 1'b0; Jump_flag <= 1'b0; end // MOV dir,#
-	{8'b01110101,2'b00,S5,1'b0} : begin PC_en <= 1'b1; PC_add_rel <= 1'b0; Jump_flag <= 1'b0; end // MOV dir,#
-	{8'b1010011x,2'b00,S5,1'b0} : begin PC_en <= 1'b1; PC_add_rel <= 1'b0; Jump_flag <= 1'b0; end // MOV @Ri,dir
-	{8'b0111011x,2'b00,S5,1'b0} : begin PC_en <= 1'b1; PC_add_rel <= 1'b0; Jump_flag <= 1'b0; end // MOV @Ri,#
+	{8'b1000011x,2'b01,S5,1'b0} : begin PC_en <= 1'b1; PC_AL_jmp <= 1'b0;  PC_add_rel <= 1'b0; Jump_flag <= 1'b0; end // MOV dir,@Ri
+	{8'b01110101,2'b01,S5,1'b0} : begin PC_en <= 1'b1; PC_AL_jmp <= 1'b0;  PC_add_rel <= 1'b0; Jump_flag <= 1'b0; end // MOV dir,#
+	{8'b01110101,2'b00,S5,1'b0} : begin PC_en <= 1'b1; PC_AL_jmp <= 1'b0;  PC_add_rel <= 1'b0; Jump_flag <= 1'b0; end // MOV dir,#
+	{8'b1010011x,2'b00,S5,1'b0} : begin PC_en <= 1'b1; PC_AL_jmp <= 1'b0;  PC_add_rel <= 1'b0; Jump_flag <= 1'b0; end // MOV @Ri,dir
+	{8'b0111011x,2'b00,S5,1'b0} : begin PC_en <= 1'b1; PC_AL_jmp <= 1'b0;  PC_add_rel <= 1'b0; Jump_flag <= 1'b0; end // MOV @Ri,#
 	
 	/******************************* ALU Two bytes Inst. **********************************/
-	{8'b000X0101,2'b00,S5,1'b0} : begin PC_en <= 1'b1; PC_add_rel <= 1'b0; Jump_flag <= 1'b0; end // INC/DEC    dir
-	{8'b001X010X,2'b00,S5,1'b0} : begin PC_en <= 1'b1; PC_add_rel <= 1'b0; Jump_flag <= 1'b0; end // ADD/ADDC A,dir/#
-	{8'b1001010X,2'b00,S5,1'b0} : begin PC_en <= 1'b1; PC_add_rel <= 1'b0; Jump_flag <= 1'b0; end // SUBB     A,dir/#
-	{8'b010X010X,2'b00,S5,1'b0} : begin PC_en <= 1'b1; PC_add_rel <= 1'b0; Jump_flag <= 1'b0; end // ORL/ANL  A,dir/#
-	{8'b010X001X,2'b00,S5,1'b0} : begin PC_en <= 1'b1; PC_add_rel <= 1'b0; Jump_flag <= 1'b0; end // ORL/ANL  dir,A/#
-	{8'b0110010X,2'b00,S5,1'b0} : begin PC_en <= 1'b1; PC_add_rel <= 1'b0; Jump_flag <= 1'b0; end // XRL      A,dir/#
-	{8'b0110001X,2'b00,S5,1'b0} : begin PC_en <= 1'b1; PC_add_rel <= 1'b0; Jump_flag <= 1'b0; end // XRL      dir,A/#
+	{8'b000X0101,2'b00,S5,1'b0} : begin PC_en <= 1'b1; PC_AL_jmp <= 1'b0;  PC_add_rel <= 1'b0; Jump_flag <= 1'b0; end // INC/DEC    dir
+	{8'b001X010X,2'b00,S5,1'b0} : begin PC_en <= 1'b1; PC_AL_jmp <= 1'b0;  PC_add_rel <= 1'b0; Jump_flag <= 1'b0; end // ADD/ADDC A,dir/#
+	{8'b1001010X,2'b00,S5,1'b0} : begin PC_en <= 1'b1; PC_AL_jmp <= 1'b0;  PC_add_rel <= 1'b0; Jump_flag <= 1'b0; end // SUBB     A,dir/#
+	{8'b010X010X,2'b00,S5,1'b0} : begin PC_en <= 1'b1; PC_AL_jmp <= 1'b0;  PC_add_rel <= 1'b0; Jump_flag <= 1'b0; end // ORL/ANL  A,dir/#
+	{8'b010X001X,2'b00,S5,1'b0} : begin PC_en <= 1'b1; PC_AL_jmp <= 1'b0;  PC_add_rel <= 1'b0; Jump_flag <= 1'b0; end // ORL/ANL  dir,A/#
+	{8'b0110010X,2'b00,S5,1'b0} : begin PC_en <= 1'b1; PC_AL_jmp <= 1'b0;  PC_add_rel <= 1'b0; Jump_flag <= 1'b0; end // XRL      A,dir/#
+	{8'b0110001X,2'b00,S5,1'b0} : begin PC_en <= 1'b1; PC_AL_jmp <= 1'b0;  PC_add_rel <= 1'b0; Jump_flag <= 1'b0; end // XRL      dir,A/#
 	/******************************* ALU Three bytes Inst. **********************************/
-	{8'b010X0011,2'b01,S5,1'b0} : begin PC_en <= 1'b1; PC_add_rel <= 1'b0; Jump_flag <= 1'b0; end // ORL/ANL  dir,  #
-	{8'b01100011,2'b01,S5,1'b0} : begin PC_en <= 1'b1; PC_add_rel <= 1'b0; Jump_flag <= 1'b0; end // XRL      dir,  #
+	{8'b010X0011,2'b01,S5,1'b0} : begin PC_en <= 1'b1; PC_AL_jmp <= 1'b0;  PC_add_rel <= 1'b0; Jump_flag <= 1'b0; end // ORL/ANL  dir,  #
+	{8'b01100011,2'b01,S5,1'b0} : begin PC_en <= 1'b1; PC_AL_jmp <= 1'b0;  PC_add_rel <= 1'b0; Jump_flag <= 1'b0; end // XRL      dir,  #
 	
-	{8'b10000000,2'b00,S4,1'b1} : begin PC_en <= 1'b0; PC_add_rel <= 1'b1; Jump_flag <= 1'b0; end // SJMP
-	{8'b10000000,2'b00,S5,1'b0} : begin PC_en <= 1'b1; PC_add_rel <= 1'b1; Jump_flag <= 1'b0; end // SJMP
-	{8'b01100000,2'b00,S4,1'b1} : begin PC_en <= 1'b0; PC_add_rel <= ZA;   Jump_flag <= 1'b0; end // JZ
-	{8'b01100000,2'b00,S5,1'b0} : begin PC_en <= 1'b1; PC_add_rel <= ZA;   Jump_flag <= 1'b0; end // JZ
-	{8'b01110000,2'b00,S4,1'b1} : begin PC_en <= 1'b0; PC_add_rel <= ~ZA;  Jump_flag <= 1'b0; end // JNZ
-	{8'b01110000,2'b00,S5,1'b0} : begin PC_en <= 1'b1; PC_add_rel <= ~ZA;  Jump_flag <= 1'b0; end // JNZ
-	{8'b101101XX,2'b01,S5,1'b0} : begin PC_en <= 1'b1; PC_add_rel <= 1'b0; Jump_flag <= 1'b0; end // CJNE    A,#/A,dir/@Ri,#
-	{8'b10111xxx,2'b01,S5,1'b0} : begin PC_en <= 1'b1; PC_add_rel <= 1'b0; Jump_flag <= 1'b0; end // CJNE    Rn,#
-	{8'b101101XX,2'b00,S4,1'b1} : begin PC_en <= 1'b0; PC_add_rel <= ~ZALU;Jump_flag <= 1'b0; end // CJNE    A,#/A,dir/@Ri,#
-	{8'b101101XX,2'b00,S5,1'b0} : begin PC_en <= 1'b1; PC_add_rel <= ~ZALU;Jump_flag <= 1'b0; end // CJNE    A,#/A,dir/@Ri,#
-	{8'b10111xxx,2'b00,S4,1'b1} : begin PC_en <= 1'b0; PC_add_rel <= ~ZALU;Jump_flag <= 1'b0; end // CJNE    Rn,#
-	{8'b10111xxx,2'b00,S5,1'b0} : begin PC_en <= 1'b1; PC_add_rel <= ~ZALU;Jump_flag <= 1'b0; end // CJNE    Rn,#
-	{8'b11011xxx,2'b00,S4,1'b1} : begin PC_en <= 1'b0; PC_add_rel <= ~ZALU;Jump_flag <= 1'b0; end // DJNZ    Rn
-	{8'b11011xxx,2'b00,S5,1'b0} : begin PC_en <= 1'b1; PC_add_rel <= ~ZALU;Jump_flag <= 1'b0; end // DJNZ    Rn
-	{8'b11010101,2'b01,S4,1'b1} : begin PC_en <= 1'b0; PC_add_rel <= 1'b0; Jump_flag <= 1'b0; end // DJNZ    dir
-	{8'b11010101,2'b01,S5,1'b0} : begin PC_en <= 1'b1; PC_add_rel <= 1'b0; Jump_flag <= 1'b0; end // DJNZ    dir
-	{8'b11010101,2'b00,S4,1'b1} : begin PC_en <= 1'b0; PC_add_rel <= ~ZALU;Jump_flag <= 1'b0; end // DJNZ    dir
-	{8'b11010101,2'b00,S5,1'b0} : begin PC_en <= 1'b1; PC_add_rel <= ~ZALU;Jump_flag <= 1'b0; end // DJNZ    dir
+	{8'b10000000,2'b00,S4,1'b1} : begin PC_en <= 1'b0; PC_AL_jmp <= 1'b0;  PC_add_rel <= 1'b1; Jump_flag <= 1'b0; end // SJMP
+	{8'b10000000,2'b00,S5,1'b0} : begin PC_en <= 1'b1; PC_AL_jmp <= 1'b0;  PC_add_rel <= 1'b1; Jump_flag <= 1'b0; end // SJMP
+	{8'b01100000,2'b00,S4,1'b1} : begin PC_en <= 1'b0; PC_AL_jmp <= 1'b0;  PC_add_rel <= ZA;   Jump_flag <= 1'b0; end // JZ
+	{8'b01100000,2'b00,S5,1'b0} : begin PC_en <= 1'b1; PC_AL_jmp <= 1'b0;  PC_add_rel <= ZA;   Jump_flag <= 1'b0; end // JZ
+	{8'b01110000,2'b00,S4,1'b1} : begin PC_en <= 1'b0; PC_AL_jmp <= 1'b0;  PC_add_rel <= ~ZA;  Jump_flag <= 1'b0; end // JNZ
+	{8'b01110000,2'b00,S5,1'b0} : begin PC_en <= 1'b1; PC_AL_jmp <= 1'b0;  PC_add_rel <= ~ZA;  Jump_flag <= 1'b0; end // JNZ
+	{8'b101101XX,2'b01,S5,1'b0} : begin PC_en <= 1'b1; PC_AL_jmp <= 1'b0;  PC_add_rel <= 1'b0; Jump_flag <= 1'b0; end // CJNE    A,#/A,dir/@Ri,#
+	{8'b10111xxx,2'b01,S5,1'b0} : begin PC_en <= 1'b1; PC_AL_jmp <= 1'b0;  PC_add_rel <= 1'b0; Jump_flag <= 1'b0; end // CJNE    Rn,#
+	{8'b101101XX,2'b00,S4,1'b1} : begin PC_en <= 1'b0; PC_AL_jmp <= 1'b0;  PC_add_rel <= ~ZALU;Jump_flag <= 1'b0; end // CJNE    A,#/A,dir/@Ri,#
+	{8'b101101XX,2'b00,S5,1'b0} : begin PC_en <= 1'b1; PC_AL_jmp <= 1'b0;  PC_add_rel <= ~ZALU;Jump_flag <= 1'b0; end // CJNE    A,#/A,dir/@Ri,#
+	{8'b10111xxx,2'b00,S4,1'b1} : begin PC_en <= 1'b0; PC_AL_jmp <= 1'b0;  PC_add_rel <= ~ZALU;Jump_flag <= 1'b0; end // CJNE    Rn,#
+	{8'b10111xxx,2'b00,S5,1'b0} : begin PC_en <= 1'b1; PC_AL_jmp <= 1'b0;  PC_add_rel <= ~ZALU;Jump_flag <= 1'b0; end // CJNE    Rn,#
+	{8'b11011xxx,2'b00,S4,1'b1} : begin PC_en <= 1'b0; PC_AL_jmp <= 1'b0;  PC_add_rel <= ~ZALU;Jump_flag <= 1'b0; end // DJNZ    Rn
+	{8'b11011xxx,2'b00,S5,1'b0} : begin PC_en <= 1'b1; PC_AL_jmp <= 1'b0;  PC_add_rel <= ~ZALU;Jump_flag <= 1'b0; end // DJNZ    Rn
+	{8'b11010101,2'b01,S4,1'b1} : begin PC_en <= 1'b0; PC_AL_jmp <= 1'b0;  PC_add_rel <= 1'b0; Jump_flag <= 1'b0; end // DJNZ    dir
+	{8'b11010101,2'b01,S5,1'b0} : begin PC_en <= 1'b1; PC_AL_jmp <= 1'b0;  PC_add_rel <= 1'b0; Jump_flag <= 1'b0; end // DJNZ    dir
+	{8'b11010101,2'b00,S4,1'b1} : begin PC_en <= 1'b0; PC_AL_jmp <= 1'b0;  PC_add_rel <= ~ZALU;Jump_flag <= 1'b0; end // DJNZ    dir
+	{8'b11010101,2'b00,S5,1'b0} : begin PC_en <= 1'b1; PC_AL_jmp <= 1'b0;  PC_add_rel <= ~ZALU;Jump_flag <= 1'b0; end // DJNZ    dir
 	
-	{8'b00000010,2'b01,S5,1'b0} : begin PC_en <= 1'b1; PC_add_rel <= 1'b0; Jump_flag <= 1'b0; end // LJMP    add PC for low 8 bits addr16
-	{8'b00000010,2'b00,S4,1'b1} : begin PC_en <= 1'b0; PC_add_rel <= 1'b0; Jump_flag <= 1'b1; end // LJMP    prepare addr16 for PC_in
-	{8'b00000010,2'b00,S5,1'b0} : begin PC_en <= 1'b1; PC_add_rel <= 1'b0; Jump_flag <= 1'b1; end // LJMP    enter addr16 to PC
-	{8'b01000000,2'b00,S4,1'b1} : begin PC_en <= 1'b0; PC_add_rel <= Cy;   Jump_flag <= 1'b0; end // JC
-	{8'b01000000,2'b00,S5,1'b0} : begin PC_en <= 1'b1; PC_add_rel <= Cy;   Jump_flag <= 1'b0; end // JC
-	{8'b01010000,2'b00,S4,1'b1} : begin PC_en <= 1'b0; PC_add_rel <= ~Cy;  Jump_flag <= 1'b0; end // JNC
-	{8'b01010000,2'b00,S5,1'b0} : begin PC_en <= 1'b1; PC_add_rel <= ~Cy;  Jump_flag <= 1'b0; end // JNC
-	default : begin PC_en <= 1'b0; PC_add_rel <= 1'b0; Jump_flag <= 1'b0; end
+	{8'b000X0010,2'b01,S5,1'b0} : begin PC_en <= 1'b1; PC_AL_jmp <= 1'b1;  PC_add_rel <= 1'b0; Jump_flag <= 1'b0; end // LJMP/LCALL    add PC for low 8 bits addr16
+	{8'b000X0010,2'b00,S4,1'b1} : begin PC_en <= 1'b0; PC_AL_jmp <= 1'b1;  PC_add_rel <= 1'b0; Jump_flag <= 1'b1; end // LJMP/LCALL    prepare addr16 for PC_in
+	{8'b000X0010,2'b00,S5,1'b0} : begin PC_en <= 1'b1; PC_AL_jmp <= 1'b1;  PC_add_rel <= 1'b0; Jump_flag <= 1'b1; end // LJMP/LCALL    enter addr16 to PC
+	{8'bXXXX0001,2'b00,S4,1'b1} : begin PC_en <= 1'b0; PC_AL_jmp <= 1'b0;  PC_add_rel <= 1'b0; Jump_flag <= 1'b1; end // AJMP/ACALL    prepare addr16 for PC_in
+	{8'bXXXX0001,2'b00,S5,1'b0} : begin PC_en <= 1'b1; PC_AL_jmp <= 1'b0;  PC_add_rel <= 1'b0; Jump_flag <= 1'b1; end // AJMP/ACALL    enter addr16 to PC
+	{8'b01000000,2'b00,S4,1'b1} : begin PC_en <= 1'b0; PC_AL_jmp <= 1'b0;  PC_add_rel <= Cy;   Jump_flag <= 1'b0; end // JC
+	{8'b01000000,2'b00,S5,1'b0} : begin PC_en <= 1'b1; PC_AL_jmp <= 1'b0;  PC_add_rel <= Cy;   Jump_flag <= 1'b0; end // JC
+	{8'b01010000,2'b00,S4,1'b1} : begin PC_en <= 1'b0; PC_AL_jmp <= 1'b0;  PC_add_rel <= ~Cy;  Jump_flag <= 1'b0; end // JNC
+	{8'b01010000,2'b00,S5,1'b0} : begin PC_en <= 1'b1; PC_AL_jmp <= 1'b0;  PC_add_rel <= ~Cy;  Jump_flag <= 1'b0; end // JNC
+	default : begin PC_en <= 1'b0; PC_AL_jmp <= 1'b0; PC_add_rel <= 1'b0; Jump_flag <= 1'b0; end
 	endcase
   
   // decode Bb,position,Rn_ext,Ri_at
@@ -309,8 +312,9 @@ module AddrU(IR,direct,ZA,ZALU,Cy,
 	{8'b11011xxx,2'b00,S5,8'bxxxxxxxx} : Addr_src <= {SSFR_src,ALU_src,{SFR_ennum{1'b0}}}; // DJNZ Rn
     {8'b11010101,2'b00,S5,8'bxxxxxxxx} : Addr_src <= {SSFR_src,ALU_src,{SFR_ennum{1'b0}}}; // DJNZ dir    
 	
-	{8'b00000010,2'b01,S3,8'bxxxxxxxx} : Addr_src <= {CODE_src,SFR_src,{SFR_ennum{1'b0}}}; // LJMP addr16 -> load high 8 bits of addr16
-	{8'b00000010,2'b01,S6,8'bxxxxxxxx} : Addr_src <= {CODE_src,SFR_src,{SFR_ennum{1'b0}}}; // LJMP addr16 -> load low 8 bits of addr16
+	{8'b000X0010,2'b01,S3,8'bxxxxxxxx} : Addr_src <= {CODE_src,SFR_src,{SFR_ennum{1'b0}}}; // LJMP/LCALL addr16 -> load high 8 bits of addr16
+	{8'b000X0010,2'b01,S6,8'bxxxxxxxx} : Addr_src <= {CODE_src,SFR_src,{SFR_ennum{1'b0}}}; // LJMP/LCALL addr16 -> load low 8 bits of addr16
+	{8'bxxxx0001,2'b01,S6,8'bxxxxxxxx} : Addr_src <= {CODE_src,SFR_src,{SFR_ennum{1'b0}}}; // AJMP/ACALL addr11 -> load low 8 bits of addr11
 	
 	{8'b11100100,2'b00,S3,8'bxxxxxxxx} : Addr_src <= {SSFR_src,CLR_src,{SFR_ennum{1'b0}}}; // CLR  A
 	{8'b11000100,2'b00,S3,8'bxxxxxxxx} : Addr_src <= {SSFR_src,SWAP_src,{SFR_ennum{1'b0}}};// SWAP A
@@ -479,8 +483,9 @@ module AddrU(IR,direct,ZA,ZALU,Cy,
 	{8'b11010101,2'b00,S5,8'b0xxxxxxx,1'b1} : Addr_dst <= {DATA_dst,SFR_dst,{SFR_ennum{1'b0}}};           // DJNZ dir
     {8'b11011xxx,2'b00,S5,8'bxxxxxxxx,1'b1} : Addr_dst <= {DATA_dst,SFR_dst,{SFR_ennum{1'b0}}};           // DJNZ Rn
 	
-	{8'b00000010,2'b01,S3,8'bxxxxxxxx,1'b1} : Addr_dst <= {SSFR_dst,jmpH_dst,{SFR_ennum{1'b0}}};           // LJMP addr16 -> load addr16 to R_jmpH
-	{8'b00000010,2'b01,S6,8'bxxxxxxxx,1'b1} : Addr_dst <= {SSFR_dst,jmpL_dst,{SFR_ennum{1'b0}}};           // LJMP addr16 -> load addr16 to R_jmpL
+	{8'b000X0010,2'b01,S3,8'bxxxxxxxx,1'b1} : Addr_dst <= {SSFR_dst,jmpH_dst,{SFR_ennum{1'b0}}};           // LJMP/LCALL addr16 -> load addr16 to R_jmpH
+	{8'b000X0010,2'b01,S6,8'bxxxxxxxx,1'b1} : Addr_dst <= {SSFR_dst,jmpL_dst,{SFR_ennum{1'b0}}};           // LJMP/LCALL addr16 -> load addr16 to R_jmpL
+	{8'bXXXX0001,2'b01,S6,8'bxxxxxxxx,1'b1} : Addr_dst <= {SSFR_dst,jmpL_dst,{SFR_ennum{1'b0}}};           // AJMP/ACALL addr11 -> load addr11 to R_jmpL
 	
 	{8'b11X00100,2'b00,S3,8'bxxxxxxxx,1'b1} : Addr_dst <= {SSFR_dst,SFR_dst,A_dst};                       // SWAP/CLR  A
 	/******************************* !direct of SFR patches! **********************************/
