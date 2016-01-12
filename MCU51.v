@@ -26,7 +26,7 @@ module MCU51(XTAL1,XTAL2,RST,EA,ALE,PSEN,P0,P1,P2,P3);
   //assign P0 = P0_oe ? 8'hzz : P0_reg[7:0];
   //buffer buf_P0(.in(P0[7:0]&P0_reg[7:0]),.en(P0_oe),.out(BUS[7:0]));
   wire P0_en;                     // enter a new value to SFR_P0
-  SFR SFR_P0(.clk(clk),.reset(RST),.en(P0_en),.oe(1'b0),.Bb(Bb),.position(position[7:0]),
+  SFR SFR_P0(.clk(clk),.reset(RST),.en(P0_en),.oe(P0_oe),.Bb(Bb),.position(position[7:0]),
          .din(BUS[7:0]),.bin(BUS[8]),.dout(BUS[7:0]),.bout(BUS[8]),.cout(P0[7:0]));
   //wire P1_io;                     // input/output enable of P1; H output, L input
   wire P1_oe;                     // output enable from P1 to BUS;
@@ -34,7 +34,7 @@ module MCU51(XTAL1,XTAL2,RST,EA,ALE,PSEN,P0,P1,P2,P3);
   //assign P1 = P1_oe ?  8'hzz : P1_reg[7:0];
   //buffer buf_P1(.in(P1[7:0]&P1_reg[7:0]),.en(P1_oe),.out(BUS[7:0]));
   wire P1_en;                     // enter a new value to SFR_P1
-  SFR SFR_P1(.clk(clk),.reset(RST),.en(P1_en),.oe(1'b0),.Bb(Bb),.position(position[7:0]),
+  SFR SFR_P1(.clk(clk),.reset(RST),.en(P1_en),.oe(P1_oe),.Bb(Bb),.position(position[7:0]),
          .din(BUS[7:0]),.bin(BUS[8]),.dout(BUS[7:0]),.bout(BUS[8]),.cout(P1[7:0]));
   //wire P2_io;                     // input/output enable of P2; H output, L input
   wire P2_oe;                     // output enable from P2 to BUS;
@@ -64,6 +64,12 @@ module MCU51(XTAL1,XTAL2,RST,EA,ALE,PSEN,P0,P1,P2,P3);
   wire Jump_flag;                  // H take jump, L no jump !!!including rel!!!
   wire [15:0] PC_Jump,PC_next;     // new PC for jump taken or untaken
   assign PC_in = Jump_flag?PC_Jump[15:0]:PC_next[15:0];
+  // Registers for PC_jump
+  wire jmpH_en,jmpL_en;
+  SFR R_jmpH(.clk(clk),.reset(RST),.en(jmpH_en),.oe(1'b0),.Bb(1'b1),.position(8'h00),
+          .din(BUS[7:0]),.bin(1'b0),.dout(),.bout(),.cout(PC_Jump[15:8]));
+  SFR R_jmpL(.clk(clk),.reset(RST),.en(jmpL_en),.oe(1'b0),.Bb(1'b1),.position(8'h00),
+          .din(BUS[7:0]),.bin(1'b0),.dout(),.bout(),.cout(PC_Jump[7:0]));
   // Register for rel. rel is different from addr11/addr16/direct/data for it take add
   wire rel_en;                     // enter a new rel
   wire [7:0] rel;                  // current rel out from R_rel
@@ -204,7 +210,7 @@ module MCU51(XTAL1,XTAL2,RST,EA,ALE,PSEN,P0,P1,P2,P3);
 
   /*** Control Unit ***/
   wire PSEN_EA;
-  CU ControlUnit(.clk(clk),.reset(RST),.IR(IR[7:0]),.direct(direct[7:0]),.ZA(ZA),.ZALU(ZALU),
+  CU ControlUnit(.clk(clk),.reset(RST),.IR(IR[7:0]),.direct(direct[7:0]),.ZA(ZA),.ZALU(ZALU),.Cy(Cy),
           // output control signal
 		  .Phase(Phase),.ALE(ALE),.PSEN(PSEN_EA),.RD(),.WR(),
 		  .PC_CON({PC_en,Jump_flag,PC_add_rel}),
@@ -212,7 +218,7 @@ module MCU51(XTAL1,XTAL2,RST,EA,ALE,PSEN,P0,P1,P2,P3);
 		  .Bb(Bb),.position(position[7:0]),
 		  .Rn_ext(Rn_ext),.Ri_at(Ri_at),
 		  .XDATA_CON(),.DATA_CON({DATA_RW,DATA_CS}),
-		  .rel_en(rel_en),
+		  .jmpH_en(jmpH_en),.jmpL_en(jmpL_en),.rel_en(rel_en),
 		  .direct_en(direct_en),.bit_en(bit_en),
 		  .R_V1t_CON({R_V1t_en,R_V1t_oe}),
 		  .R_V2t_CON({R_V2t_en,R_V2t_oe}),

@@ -1,4 +1,4 @@
-module AddrU(IR,direct,ZA,ZALU,
+module AddrU(IR,direct,ZA,ZALU,Cy,
              cycles,S,Phase,
 			 // output
 			 PC_en,PC_add_rel,Jump_flag,
@@ -9,7 +9,7 @@ module AddrU(IR,direct,ZA,ZALU,
 /************************************** PORTS *****************************************/		  
   input [7:0] IR;
   input [7:0] direct;
-  input ZA,ZALU;
+  input ZA,ZALU,Cy;
   
   input [1:0] cycles;        // cycles remained
   input [2:0] S;             // current S
@@ -51,19 +51,21 @@ module AddrU(IR,direct,ZA,ZALU,
   // number for User Special Function Registers enabled
   parameter  SFR_ennum = 7;
   
-  output reg [14:0] Addr_dst;
+  output reg [16:0] Addr_dst;
   // {DATA_dst,XDATA_dst} Memory
   parameter   DATA_dst = 2'b10;
   parameter  XDATA_dst = 2'b01;
   parameter   SSFR_dst = 2'b00;
-  //+{rel_en,IR_en,direct_en,bit_en,R_V1t_en,R_V2t_en}  Super Special Function Registers
-  parameter    rel_dst = 6'b100000;
-  parameter     IR_dst = 6'b010000;
-  parameter direct_dst = 6'b001000;
-  parameter    bit_dst = 6'b000100;
-  parameter    V1t_dst = 6'b000010;
-  parameter    V2t_dst = 6'b000001;
-  parameter    SFR_dst = 6'b000000;
+  //+{jmpH_en,jmpL_en,rel_en,IR_en,direct_en,bit_en,R_V1t_en,R_V2t_en}  Super Special Function Registers
+  parameter   jmpH_dst = 8'b10000000;
+  parameter   jmpL_dst = 8'b01000000;
+  parameter    rel_dst = 8'b00100000;
+  parameter     IR_dst = 8'b00010000;
+  parameter direct_dst = 8'b00001000;
+  parameter    bit_dst = 8'b00000100;
+  parameter    V1t_dst = 8'b00000010;
+  parameter    V2t_dst = 8'b00000001;
+  parameter    SFR_dst = 8'b00000000;
   //+{P0_en,SP_en,DPL_en,DPH_en,PCON_en,TCON_en,TMOD_en,TL0_en,TL1_en,TH0_en,TH1_en,P1_en,SCON_en,SBUF_en,P2_en,IE_en,P3_en,IP_en,PSW_en,A_en,B_en}    User Special Function Registers
   parameter     P0_dst = 7'b1000000;
   parameter     P1_dst = 7'b0100000;
@@ -140,6 +142,13 @@ module AddrU(IR,direct,ZA,ZALU,
 	{8'b11010101,2'b00,S4,1'b1} : begin PC_en <= 1'b0; PC_add_rel <= ~ZALU;Jump_flag <= 1'b0; end // DJNZ    dir
 	{8'b11010101,2'b00,S5,1'b0} : begin PC_en <= 1'b1; PC_add_rel <= ~ZALU;Jump_flag <= 1'b0; end // DJNZ    dir
 	
+	{8'b00000010,2'b01,S5,1'b0} : begin PC_en <= 1'b1; PC_add_rel <= 1'b0; Jump_flag <= 1'b0; end // LJMP    add PC for low 8 bits addr16
+	{8'b00000010,2'b00,S4,1'b1} : begin PC_en <= 1'b0; PC_add_rel <= 1'b0; Jump_flag <= 1'b1; end // LJMP    prepare addr16 for PC_in
+	{8'b00000010,2'b00,S5,1'b0} : begin PC_en <= 1'b1; PC_add_rel <= 1'b0; Jump_flag <= 1'b1; end // LJMP    enter addr16 to PC
+	{8'b01000000,2'b00,S4,1'b1} : begin PC_en <= 1'b0; PC_add_rel <= Cy;   Jump_flag <= 1'b0; end // JC
+	{8'b01000000,2'b00,S5,1'b0} : begin PC_en <= 1'b1; PC_add_rel <= Cy;   Jump_flag <= 1'b0; end // JC
+	{8'b01010000,2'b00,S4,1'b1} : begin PC_en <= 1'b0; PC_add_rel <= ~Cy;  Jump_flag <= 1'b0; end // JNC
+	{8'b01010000,2'b00,S5,1'b0} : begin PC_en <= 1'b1; PC_add_rel <= ~Cy;  Jump_flag <= 1'b0; end // JNC
 	default : begin PC_en <= 1'b0; PC_add_rel <= 1'b0; Jump_flag <= 1'b0; end
 	endcase
   
@@ -282,8 +291,7 @@ module AddrU(IR,direct,ZA,ZALU,
 	{8'b10010101,2'b00,S3,8'bxxxxxxxx} : Addr_src <= {CODE_src,SFR_src,{SFR_ennum{1'b0}}}; // SUBB              A,dir -> load dir
 	
     {8'b10000000,2'b01,S3,8'bxxxxxxxx} : Addr_src <= {CODE_src,SFR_src,{SFR_ennum{1'b0}}}; // SJMP
-    {8'b01110000,2'b01,S3,8'bxxxxxxxx} : Addr_src <= {CODE_src,SFR_src,{SFR_ennum{1'b0}}}; // JNZ
-    {8'b01100000,2'b01,S3,8'bxxxxxxxx} : Addr_src <= {CODE_src,SFR_src,{SFR_ennum{1'b0}}}; // JZ
+    {8'b01XX0000,2'b01,S3,8'bxxxxxxxx} : Addr_src <= {CODE_src,SFR_src,{SFR_ennum{1'b0}}}; // JC/JNC/JZ/JNZ
     {8'b10111xxx,2'b01,S3,8'bxxxxxxxx} : Addr_src <= {CODE_src,SFR_src,{SFR_ennum{1'b0}}}; // CJNE Rn,#
     {8'b101101XX,2'b01,S3,8'bxxxxxxxx} : Addr_src <= {CODE_src,SFR_src,{SFR_ennum{1'b0}}}; // CJNE A,#/A,dir/@Ri,#
     {8'b10111xxx,2'b01,S4,8'bxxxxxxxx} : Addr_src <= {DATA_src,SFR_src,{SFR_ennum{1'b0}}}; // CJNE Rn,#
@@ -300,6 +308,9 @@ module AddrU(IR,direct,ZA,ZALU,
     {8'b11010101,2'b00,S3,8'bxxxxxxxx} : Addr_src <= {CODE_src,SFR_src,{SFR_ennum{1'b0}}}; // DJNZ dir    
 	{8'b11011xxx,2'b00,S5,8'bxxxxxxxx} : Addr_src <= {SSFR_src,ALU_src,{SFR_ennum{1'b0}}}; // DJNZ Rn
     {8'b11010101,2'b00,S5,8'bxxxxxxxx} : Addr_src <= {SSFR_src,ALU_src,{SFR_ennum{1'b0}}}; // DJNZ dir    
+	
+	{8'b00000010,2'b01,S3,8'bxxxxxxxx} : Addr_src <= {CODE_src,SFR_src,{SFR_ennum{1'b0}}}; // LJMP addr16 -> load high 8 bits of addr16
+	{8'b00000010,2'b01,S6,8'bxxxxxxxx} : Addr_src <= {CODE_src,SFR_src,{SFR_ennum{1'b0}}}; // LJMP addr16 -> load low 8 bits of addr16
 	
 	{8'b11100100,2'b00,S3,8'bxxxxxxxx} : Addr_src <= {SSFR_src,CLR_src,{SFR_ennum{1'b0}}}; // CLR  A
 	{8'b11000100,2'b00,S3,8'bxxxxxxxx} : Addr_src <= {SSFR_src,SWAP_src,{SFR_ennum{1'b0}}};// SWAP A
@@ -453,8 +464,7 @@ module AddrU(IR,direct,ZA,ZALU,
 	{8'b10010101,2'b00,S3,8'bxxxxxxxx,1'b1} : Addr_dst <= {SSFR_dst,direct_dst,{SFR_ennum{1'b0}}};        // SUBB           A,dir       -> load direct
 
     {8'b10000000,2'b01,S3,8'bxxxxxxxx,1'b1} : Addr_dst <= {SSFR_dst,rel_dst,{SFR_ennum{1'b0}}};           // SJMP
-    {8'b01110000,2'b01,S3,8'bxxxxxxxx,1'b1} : Addr_dst <= {SSFR_dst,rel_dst,{SFR_ennum{1'b0}}};           // JNZ
-    {8'b01100000,2'b01,S3,8'bxxxxxxxx,1'b1} : Addr_dst <= {SSFR_dst,rel_dst,{SFR_ennum{1'b0}}};           // JZ
+    {8'b01XX0000,2'b01,S3,8'bxxxxxxxx,1'b1} : Addr_dst <= {SSFR_dst,rel_dst,{SFR_ennum{1'b0}}};           // JC/JNC/JZ/JNZ
     {8'b10110101,2'b01,S3,8'bxxxxxxxx,1'b1} : Addr_dst <= {SSFR_dst,direct_dst,{SFR_ennum{1'b0}}};        // CJNE A,dir
     {8'b10110100,2'b01,S3,8'bxxxxxxxx,1'b1} : Addr_dst <= {SSFR_dst,V2t_dst,{SFR_ennum{1'b0}}};           // CJNE A,#
     {8'b1011011x,2'b01,S3,8'bxxxxxxxx,1'b1} : Addr_dst <= {SSFR_dst,V2t_dst,{SFR_ennum{1'b0}}};           // CJNE @Ri,#
@@ -468,6 +478,9 @@ module AddrU(IR,direct,ZA,ZALU,
     {8'b11011xxx,2'b00,S3,8'bxxxxxxxx,1'b1} : Addr_dst <= {SSFR_dst,rel_dst,{SFR_ennum{1'b0}}};           // DJNZ Rn
 	{8'b11010101,2'b00,S5,8'b0xxxxxxx,1'b1} : Addr_dst <= {DATA_dst,SFR_dst,{SFR_ennum{1'b0}}};           // DJNZ dir
     {8'b11011xxx,2'b00,S5,8'bxxxxxxxx,1'b1} : Addr_dst <= {DATA_dst,SFR_dst,{SFR_ennum{1'b0}}};           // DJNZ Rn
+	
+	{8'b00000010,2'b01,S3,8'bxxxxxxxx,1'b1} : Addr_dst <= {SSFR_dst,jmpH_dst,{SFR_ennum{1'b0}}};           // LJMP addr16 -> load addr16 to R_jmpH
+	{8'b00000010,2'b01,S6,8'bxxxxxxxx,1'b1} : Addr_dst <= {SSFR_dst,jmpL_dst,{SFR_ennum{1'b0}}};           // LJMP addr16 -> load addr16 to R_jmpL
 	
 	{8'b11X00100,2'b00,S3,8'bxxxxxxxx,1'b1} : Addr_dst <= {SSFR_dst,SFR_dst,A_dst};                       // SWAP/CLR  A
 	/******************************* !direct of SFR patches! **********************************/

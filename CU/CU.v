@@ -1,11 +1,11 @@
-module CU(clk,reset,IR,direct,ZA,ZALU,
+module CU(clk,reset,IR,direct,ZA,ZALU,Cy,
           // output control signal
 		  Phase,ALE,PSEN,RD,WR,
 		  PC_CON,CODE_CS,IR_en,
 		  Bb,position,
 		  Rn_ext,Ri_at,
 		  XDATA_CON,DATA_CON,
-		  rel_en,
+		  jmpH_en,jmpL_en,rel_en,
 		  direct_en,bit_en,
 		  R_V1t_CON,R_V2t_CON,
 		  ALU_CON,
@@ -18,7 +18,7 @@ module CU(clk,reset,IR,direct,ZA,ZALU,
   input clk,reset;
   input [7:0] IR;
   input [7:0] direct;
-  input ZA,ZALU;
+  input ZA,ZALU,Cy;
   
   output reg  Phase;                 // Phase
   output reg  ALE;                   // Address Latch Enable, High pulse effective
@@ -37,6 +37,7 @@ module CU(clk,reset,IR,direct,ZA,ZALU,
   
   output reg  [1:0] XDATA_CON,DATA_CON;          // {X/DATA_RW,X/DATA_CS}
   
+  output wire jmpH_en,jmpL_en;                   // enter a new PC_jump
   output wire rel_en;                            // enter a new rel
   output wire direct_en,bit_en;                  // enter a new direct/bit address
   
@@ -131,7 +132,7 @@ module CU(clk,reset,IR,direct,ZA,ZALU,
 /************************************** ADDRS *****************************************/  
   // Address Unit
   wire XDATA_src,XDATA_dst,DATA_src,DATA_dst,CODE_src,ALU_oe;
-  AddrU AddressUnit(.IR(IR[7:0]),.direct(direct[7:0]),.ZA(ZA),.ZALU(ZALU),
+  AddrU AddressUnit(.IR(IR[7:0]),.direct(direct[7:0]),.ZA(ZA),.ZALU(ZALU),.Cy(Cy),
                     .cycles(cycles[1:0]),.S(S[2:0]),.Phase(Phase),
 					// output
 					.PC_en(PC_CON[2]),.PC_add_rel(PC_CON[0]),.Jump_flag(PC_CON[1]),
@@ -142,7 +143,7 @@ module CU(clk,reset,IR,direct,ZA,ZALU,
 					           P0_CON[0],P1_CON[0],P2_CON[0],P3_CON[0],PSW_CON[0],A_CON[0],B_CON[0]}),
 					
 					.Addr_dst({DATA_dst,XDATA_dst,
-					           rel_en,IR_en,direct_en,bit_en,
+					           jmpH_en,jmpL_en,rel_en,IR_en,direct_en,bit_en,
 							   R_V1t_CON[1],R_V2t_CON[1],
 					           P0_CON[1],P1_CON[1],P2_CON[1],P3_CON[1],PSW_CON[1],A_CON[1],B_CON[1]})//,
 							   
@@ -262,12 +263,12 @@ module CU(clk,reset,IR,direct,ZA,ZALU,
 	8'b1010011x : cycles_decoded <= 2'b01; // MOV @Ri,dir
     8'b1110001x : cycles_decoded <= 2'b01; // MOVX A,@Ri
     8'b10000000 : cycles_decoded <= 2'b01; // SJMP
-    8'b01110000 : cycles_decoded <= 2'b01; // JNZ
-    8'b01100000 : cycles_decoded <= 2'b01; // JZ
+    8'b01XX0000 : cycles_decoded <= 2'b01; // JC/JNC/JZ/JNZ
     8'b101101XX : cycles_decoded <= 2'b01; // CJNE A,#/A,dir/@Ri,#
     8'b10111xxx : cycles_decoded <= 2'b01; // CJNE Rn,#
     8'b11010101 : cycles_decoded <= 2'b01; // DJNZ dir
     8'b11011xxx : cycles_decoded <= 2'b01; // DJNZ Rn
+    8'b00000010 : cycles_decoded <= 2'b01; // LJMP
 	default : cycles_decoded <= 2'b00;
 	endcase
   

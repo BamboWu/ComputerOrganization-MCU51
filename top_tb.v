@@ -6,7 +6,7 @@ module top_tb();
   wire [7:0] P0,P1;
   reg  [7:0] P2,P3;  
   
-  top uut(.CLK(CLK),.reset(reset),.resetclk(resetclk),.MHz12(),/*.P0(),*/.P1(P1[7:0]),.P2(P2[7:0])/*,.P3()*/);
+  top uut(.CLK(CLK),.reset(reset),.resetclk(resetclk),.MHz12(),.P0(P0[7:0]),.P1L(P1[3:0]),.P2(P2[7:0]),.P3(P3[7:0]));
   
   initial begin
 	// Initialize Inputs
